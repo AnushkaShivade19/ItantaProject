@@ -1,7 +1,7 @@
 """
 FastAPI backend — exposes the Agentic Framework over HTTP.
 
-Phase 2: full run lifecycle endpoints + event streaming (via polling).
+Phase 3: real LLM pipeline with pause/resume for Intake clarifications.
 """
 from __future__ import annotations
 
@@ -32,10 +32,9 @@ client: AsyncIOMotorClient = AsyncIOMotorClient(mongo_url)
 db = client[os.environ["DB_NAME"]]
 
 # ---- App + router ----
-app: FastAPI = FastAPI(title="Agentic AI Framework", version="0.2.0")
+app: FastAPI = FastAPI(title="Agentic AI Framework", version="0.3.0")
 api_router: APIRouter = APIRouter(prefix="/api")
 
-# ---- Config loader ----
 CONFIG_PATH: Path = ROOT_DIR / "config" / "config.yaml"
 
 
@@ -62,7 +61,7 @@ class HealthResponse(BaseModel):
 class PhaseInfo(BaseModel):
     id: str
     title: str
-    status: str  # complete | current | pending
+    status: str
     description: str
 
 
@@ -110,10 +109,26 @@ class RunDetailResponse(BaseModel):
     events: list[dict[str, Any]]
 
 
+class AnswerPayload(BaseModel):
+    id: str
+    question: str
+    answer: str
+
+
+class AnswerRunRequest(BaseModel):
+    answers: list[AnswerPayload]
+
+
+class AnswerRunResponse(BaseModel):
+    accepted: int
+    run_id: str
+    resumed: bool
+
+
 # ================= Endpoints =================
 @api_router.get("/", response_model=RootResponse)
 async def root() -> RootResponse:
-    return RootResponse(message="Agentic AI Framework — Phase 2 orchestrator online.")
+    return RootResponse(message="Agentic AI Framework — Phase 3 intake online.")
 
 
 @api_router.get("/health", response_model=HealthResponse)
@@ -122,7 +137,7 @@ async def health() -> HealthResponse:
         status="ok",
         framework=_config_cache["framework"]["name"],
         version=_config_cache["framework"]["version"],
-        phase="phase-2-orchestrator",
+        phase="phase-3-intake",
         groq_key_configured=bool(os.environ.get("GROQ_API_KEY")),
         timestamp=datetime.now(timezone.utc).isoformat(),
     )
@@ -160,10 +175,10 @@ async def list_phases() -> list[PhaseInfo]:
                   status="complete",
                   description="State manager + workflow wiring + event logging"),
         PhaseInfo(id="phase-3-intake", title="Intake Agent",
-                  status="current",
-                  description="Clarifying questions, structured spec JSON"),
+                  status="complete",
+                  description="Groq-powered clarifying questions + structured JSON spec"),
         PhaseInfo(id="phase-4-architect-planner", title="Architect + Planner",
-                  status="pending", description="System design + atomic tasks"),
+                  status="current", description="System design + atomic tasks"),
         PhaseInfo(id="phase-5-qa", title="QA Agent (TDD)",
                   status="pending", description="Failing pytest cases first"),
         PhaseInfo(id="phase-6-coder", title="Coder Agent",
@@ -205,6 +220,53 @@ async def get_run(run_id: str, since: str | None = None) -> RunDetailResponse:
         raise HTTPException(status_code=404, detail="run not found")
     events = read_events_since(run_id, since) if since else read_events(run_id)
     return RunDetailResponse(run=run.model_dump(mode="json"), events=events)
+
+
+@api_router.post("/runs/{run_id}/answer", response_model=AnswerRunResponse)
+async def answer_run(
+    run_id: str,
+    req: AnswerRunRequest,
+    background_tasks: BackgroundTasks,
+) -> AnswerRunResponse:
+    """Store clarification answers and resume the pipeline."""
+    run = state_manager.get(run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="run not found")
+    if run.status != RunStatus.awaiting_input:
+        raise HTTPException(
+            status_code=409,
+            detail=f"run is not awaiting input (status={run.status.value})",
+        )
+
+    existing_spec = run.specification or {}
+    clarifications: list[dict[str, str]] = list(existing_spec.get("clarifications", []))
+    for a in req.answers:
+        clarifications.append({
+            "id": a.id,
+            "question": a.question,
+            "answer": a.answer,
+        })
+
+    # Clear pending questions, reset intake so the orchestrator re-runs it
+    # with the new clarifications merged in.
+    new_spec = {
+        **existing_spec,
+        "clarifications": clarifications,
+        "pending_questions": [],
+    }
+    state_manager.set_specification(run_id, new_spec)
+    state_manager.mark_agent(run_id, "intake", _agent_status_idle(),
+                             last_error=None, output_summary=None)
+    state_manager.update_run(run_id, status=RunStatus.pending)
+    event(run_id, "info", "intake", f"received {len(req.answers)} answer(s) — resuming")
+
+    background_tasks.add_task(_execute_run, run_id)
+    return AnswerRunResponse(accepted=len(req.answers), run_id=run_id, resumed=True)
+
+
+def _agent_status_idle():
+    from core.state_manager import AgentStatus  # local import avoids cycle noise
+    return AgentStatus.idle
 
 
 # ---------------- Background execution ----------------

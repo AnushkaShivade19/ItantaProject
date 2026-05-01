@@ -1,12 +1,10 @@
 """
 Orchestrator — coordinates the 7-agent pipeline.
 
-Workflow: Intake → Architect → Planner → QA → Coder → Validator → Recovery
-
-Each agent runs in isolation with retry/back-off. If an agent raises
-NotImplementedError (the Phase-2 scaffold state for not-yet-built
-agents), the orchestrator marks it as `skipped` and continues so the
-pipeline is visibly exercised end-to-end.
+Pause/resume aware: when an agent flips ``run.status`` to
+``awaiting_input``, ``run()`` returns immediately without marking the
+run completed. A subsequent call (after the user answers) skips any
+agents already in a terminal state and resumes where we paused.
 """
 from __future__ import annotations
 
@@ -28,6 +26,8 @@ AGENT_IMPORT_PATHS: dict[str, tuple[str, str]] = {
     "recovery": ("agents.recovery_agent", "RecoveryAgent"),
 }
 
+TERMINAL_AGENT_STATES = {AgentStatus.success, AgentStatus.skipped}
+
 
 class Orchestrator:
     """High-level controller for a framework run."""
@@ -38,7 +38,7 @@ class Orchestrator:
         self.pipeline: list[str] = list(AGENT_IMPORT_PATHS.keys())
         self._agent_cache: dict[str, BaseAgent] = {}
 
-    # ------------- pipeline metadata (unchanged from Phase 1) -------------
+    # ------------- metadata -------------
     def describe_pipeline(self) -> list[dict[str, str]]:
         return [
             {"name": "intake", "label": "Intake", "desc": "Clarifies spec & produces JSON"},
@@ -85,11 +85,27 @@ class Orchestrator:
         hard_fail_after = self._retry_policy()["hard_fail_after"]
 
         for agent_name in self.pipeline:
+            run = self.state.get(run_id)
+            if run is None:
+                return run  # type: ignore[return-value]
+
+            if run.agents[agent_name].status in TERMINAL_AGENT_STATES:
+                event(run_id, "info", "orchestrator",
+                      f"skip {agent_name} · already {run.agents[agent_name].status.value}")
+                continue
+
             retries_used = await self._run_agent_step(run_id, agent_name)
             total_retries += retries_used
 
             run = self.state.get(run_id)
-            if run is None or run.status == RunStatus.failed:
+            if run is None:
+                return run  # type: ignore[return-value]
+
+            if run.status == RunStatus.awaiting_input:
+                event(run_id, "warn", "orchestrator",
+                      f"pipeline paused — {agent_name} awaiting user input")
+                return run
+            if run.status == RunStatus.failed:
                 break
             if total_retries >= hard_fail_after:
                 event(run_id, "error", "orchestrator",
@@ -99,7 +115,7 @@ class Orchestrator:
                 break
 
         run = self.state.get(run_id)
-        if run is not None and run.status != RunStatus.failed:
+        if run is not None and run.status == RunStatus.running:
             self.state.update_run(run_id, status=RunStatus.completed)
             event(run_id, "success", "orchestrator",
                   "pipeline complete", total_retries=total_retries)
@@ -107,7 +123,6 @@ class Orchestrator:
 
     # ------------- per-agent step with retry -------------
     async def _run_agent_step(self, run_id: str, agent_name: str) -> int:
-        """Execute one agent. Returns number of retry attempts consumed."""
         policy = self._retry_policy()
         max_attempts = policy["max_attempts"]
         backoff = policy["backoff_seconds"]
@@ -118,23 +133,16 @@ class Orchestrator:
             try:
                 agent = self._get_agent(agent_name)
                 result = await agent.execute(run_id)
-                summary = _extract_summary(result)
-                self.state.mark_agent(run_id, agent_name, AgentStatus.success,
-                                      attempts=attempt, output_summary=summary)
-                return attempt - 1
-
             except NotImplementedError:
-                # Phase-2 dry-run: agent class exists but behaviour arrives later.
                 self.state.mark_agent(
                     run_id, agent_name, AgentStatus.skipped,
                     attempts=attempt,
                     output_summary="dry-run · agent body arrives in a later phase",
                 )
                 event(run_id, "warn", agent_name,
-                      "skipped (NotImplementedError) — Phase 2 dry-run")
+                      "skipped (NotImplementedError) — dry-run")
                 return 0
-
-            except Exception as exc:  # noqa: BLE001 — orchestration catches all
+            except Exception as exc:  # noqa: BLE001
                 event(run_id, "error", agent_name,
                       f"attempt {attempt}/{max_attempts} failed: {exc}",
                       error=str(exc))
@@ -146,6 +154,20 @@ class Orchestrator:
                     self.state.update_run(run_id, status=RunStatus.failed)
                     return attempt
                 await asyncio.sleep(backoff)
+                continue
+
+            # ---- success path ----
+            summary = _extract_summary(result)
+            if isinstance(result, dict) and result.get("mode") == "awaiting_input":
+                # Agent flipped run.status — keep agent running-shaped so the
+                # dashboard shows "in-progress, waiting on you" and we'll
+                # re-enter this exact step on resume.
+                self.state.mark_agent(run_id, agent_name, AgentStatus.running,
+                                      attempts=attempt, output_summary=summary)
+                return attempt - 1
+            self.state.mark_agent(run_id, agent_name, AgentStatus.success,
+                                  attempts=attempt, output_summary=summary)
+            return attempt - 1
 
         return max_attempts
 

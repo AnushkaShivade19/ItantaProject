@@ -7,6 +7,8 @@ import ConfigPanel from "./components/ConfigPanel";
 import LogTerminal from "./components/LogTerminal";
 import SpecEditor from "./components/SpecEditor";
 import RunSummary from "./components/RunSummary";
+import ClarificationCard from "./components/ClarificationCard";
+import SpecificationCard from "./components/SpecificationCard";
 import { useAgenticBoot } from "./hooks/useAgenticBoot";
 import { useActiveRun } from "./hooks/useActiveRun";
 import { EVENT_LEVEL_TO_LOG_LEVEL } from "./lib/constants";
@@ -75,10 +77,14 @@ export default function App() {
     setActiveRunId(runId);
   }, [setActiveRunId]);
 
+  const handleResumed = useCallback(() => {
+    // nothing to do — polling picks up the resumed run automatically
+  }, []);
+
   const busy = isRunBusy(activeRun);
   const phaseStatus = activeRun
     ? `run ${activeRun.id.slice(0, 8)} · ${activeRun.status}`
-    : "phase-2 · orchestrator ready · awaiting phase-3 intake";
+    : "phase-3 · intake ready · awaiting phase-4 architect";
 
   return (
     <div className="App min-h-screen" data-testid="app-root">
@@ -93,10 +99,12 @@ export default function App() {
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
             <div className="xl:col-span-2 space-y-6">
               <AgentPipeline pipeline={pipeline} statuses={statuses} />
+              <SpecificationCard run={activeRun} />
               {config && <ConfigPanel config={config} agents={agents} />}
             </div>
             <div className="space-y-6">
               <RunSummary run={activeRun} />
+              <ClarificationCard run={activeRun} onResumed={handleResumed} />
               <SpecEditor onRunStarted={handleRunStarted} busy={busy} />
               <LogTerminal lines={mergedLogs} />
             </div>

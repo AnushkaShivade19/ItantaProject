@@ -29,3 +29,6 @@ export const createRun = (specInput) =>
 
 export const startRun = (runId) =>
   api.post(`/runs/${runId}/start`).then((r) => r.data);
+
+export const answerRun = (runId, answers) =>
+  api.post(`/runs/${runId}/answer`, { answers }).then((r) => r.data);

@@ -1,0 +1,43 @@
+{"ts": "2026-05-01T05:34:49.904259+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "info", "agent": "state", "message": "run created", "spec_preview": "Build a markdown blog platform with search, tags, and syntax highlighting"}
+{"ts": "2026-05-01T05:34:49.955393+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "info", "agent": "state", "message": "run updated: ['status']"}
+{"ts": "2026-05-01T05:34:49.955525+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "info", "agent": "orchestrator", "message": "pipeline start \u00b7 7 agents", "pipeline": ["intake", "architect", "planner", "qa", "coder", "validator", "recovery"]}
+{"ts": "2026-05-01T05:34:49.956694+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "running", "agent": "intake", "message": "agent \u2192 running", "attempts": 0, "error": null}
+{"ts": "2026-05-01T05:34:49.956792+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "info", "agent": "intake", "message": "groq call \u00b7 model=llama-3.1-8b-instant temp=0.3"}
+{"ts": "2026-05-01T05:34:55.590951+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "info", "agent": "intake", "message": "groq ok", "prompt_tokens": 556, "completion_tokens": 157}
+{"ts": "2026-05-01T05:34:55.591453+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "info", "agent": "state", "message": "specification stored", "features": 0}
+{"ts": "2026-05-01T05:34:55.592835+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "info", "agent": "state", "message": "run updated: ['status']"}
+{"ts": "2026-05-01T05:34:55.592949+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "warn", "agent": "intake", "message": "awaiting 3 clarification(s)", "reasoning": "Missing tech stack, core features, and acceptance criteria"}
+{"ts": "2026-05-01T05:34:55.593961+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "running", "agent": "intake", "message": "agent \u2192 running", "attempts": 1, "error": null}
+{"ts": "2026-05-01T05:34:55.594052+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "warn", "agent": "orchestrator", "message": "pipeline paused \u2014 intake awaiting user input"}
+{"ts": "2026-05-01T05:34:57.102747+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "info", "agent": "state", "message": "specification stored", "features": 0}
+{"ts": "2026-05-01T05:34:57.104336+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "info", "agent": "intake", "message": "agent \u2192 idle", "attempts": 1, "error": null}
+{"ts": "2026-05-01T05:34:57.105502+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "info", "agent": "state", "message": "run updated: ['status']"}
+{"ts": "2026-05-01T05:34:57.105585+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "info", "agent": "intake", "message": "received 3 answer(s) \u2014 resuming"}
+{"ts": "2026-05-01T05:34:57.106670+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "info", "agent": "state", "message": "run updated: ['status']"}
+{"ts": "2026-05-01T05:34:57.106770+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "info", "agent": "orchestrator", "message": "pipeline start \u00b7 7 agents", "pipeline": ["intake", "architect", "planner", "qa", "coder", "validator", "recovery"]}
+{"ts": "2026-05-01T05:34:57.107767+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "running", "agent": "intake", "message": "agent \u2192 running", "attempts": 0, "error": null}
+{"ts": "2026-05-01T05:34:57.107861+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "info", "agent": "intake", "message": "groq call \u00b7 model=llama-3.1-8b-instant temp=0.3"}
+{"ts": "2026-05-01T05:35:03.875837+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "info", "agent": "intake", "message": "groq ok", "prompt_tokens": 636, "completion_tokens": 124}
+{"ts": "2026-05-01T05:35:03.876346+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "info", "agent": "state", "message": "specification stored", "features": 3}
+{"ts": "2026-05-01T05:35:03.876455+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "success", "agent": "intake", "message": "spec ready \u00b7 markdown-blog-platform \u00b7 3 features"}
+{"ts": "2026-05-01T05:35:03.877797+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "success", "agent": "intake", "message": "agent \u2192 success", "attempts": 1, "error": null}
+{"ts": "2026-05-01T05:35:03.879043+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "running", "agent": "architect", "message": "agent \u2192 running", "attempts": 0, "error": null}
+{"ts": "2026-05-01T05:35:03.880249+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "warn", "agent": "architect", "message": "agent \u2192 skipped", "attempts": 1, "error": null}
+{"ts": "2026-05-01T05:35:03.880347+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "warn", "agent": "architect", "message": "skipped (NotImplementedError) \u2014 dry-run"}
+{"ts": "2026-05-01T05:35:03.881447+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "running", "agent": "planner", "message": "agent \u2192 running", "attempts": 0, "error": null}
+{"ts": "2026-05-01T05:35:03.882543+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "warn", "agent": "planner", "message": "agent \u2192 skipped", "attempts": 1, "error": null}
+{"ts": "2026-05-01T05:35:03.882616+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "warn", "agent": "planner", "message": "skipped (NotImplementedError) \u2014 dry-run"}
+{"ts": "2026-05-01T05:35:03.883631+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "running", "agent": "qa", "message": "agent \u2192 running", "attempts": 0, "error": null}
+{"ts": "2026-05-01T05:35:03.884768+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "warn", "agent": "qa", "message": "agent \u2192 skipped", "attempts": 1, "error": null}
+{"ts": "2026-05-01T05:35:03.884868+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "warn", "agent": "qa", "message": "skipped (NotImplementedError) \u2014 dry-run"}
+{"ts": "2026-05-01T05:35:03.886405+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "running", "agent": "coder", "message": "agent \u2192 running", "attempts": 0, "error": null}
+{"ts": "2026-05-01T05:35:03.887515+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "warn", "agent": "coder", "message": "agent \u2192 skipped", "attempts": 1, "error": null}
+{"ts": "2026-05-01T05:35:03.887588+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "warn", "agent": "coder", "message": "skipped (NotImplementedError) \u2014 dry-run"}
+{"ts": "2026-05-01T05:35:03.888631+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "running", "agent": "validator", "message": "agent \u2192 running", "attempts": 0, "error": null}
+{"ts": "2026-05-01T05:35:03.889900+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "warn", "agent": "validator", "message": "agent \u2192 skipped", "attempts": 1, "error": null}
+{"ts": "2026-05-01T05:35:03.889972+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "warn", "agent": "validator", "message": "skipped (NotImplementedError) \u2014 dry-run"}
+{"ts": "2026-05-01T05:35:03.891039+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "running", "agent": "recovery", "message": "agent \u2192 running", "attempts": 0, "error": null}
+{"ts": "2026-05-01T05:35:03.892223+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "warn", "agent": "recovery", "message": "agent \u2192 skipped", "attempts": 1, "error": null}
+{"ts": "2026-05-01T05:35:03.892283+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "warn", "agent": "recovery", "message": "skipped (NotImplementedError) \u2014 dry-run"}
+{"ts": "2026-05-01T05:35:03.893360+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "info", "agent": "state", "message": "run updated: ['status']"}
+{"ts": "2026-05-01T05:35:03.893426+00:00", "run_id": "fe97996d-ac24-4338-8417-c662a8af40cd", "level": "success", "agent": "orchestrator", "message": "pipeline complete", "total_retries": 0}
