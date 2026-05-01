@@ -39,6 +39,11 @@ const agentStatusesFromRun = (run, pipeline) => {
   return base;
 };
 
+const computePhaseStatus = (run) =>
+  run
+    ? `run ${run.id.slice(0, 8)} · ${run.status}`
+    : "phase-4 · architect+planner ready · awaiting phase-5 qa";
+
 function ErrorBanner({ error }) {
   if (!error) return null;
   return (
@@ -61,6 +66,29 @@ function DashboardFooter({ phaseStatus }) {
   );
 }
 
+function MainColumn({ pipeline, statuses, activeRun, config, agents }) {
+  return (
+    <div className="xl:col-span-2 space-y-6">
+      <AgentPipeline pipeline={pipeline} statuses={statuses} />
+      <SpecificationCard run={activeRun} />
+      <ArchitectureCard run={activeRun} />
+      <TaskListCard run={activeRun} />
+      {config && <ConfigPanel config={config} agents={agents} />}
+    </div>
+  );
+}
+
+function SideColumn({ activeRun, onRunStarted, onResumed, busy, logs }) {
+  return (
+    <div className="space-y-6">
+      <RunSummary run={activeRun} />
+      <ClarificationCard run={activeRun} onResumed={onResumed} />
+      <SpecEditor onRunStarted={onRunStarted} busy={busy} />
+      <LogTerminal lines={logs} />
+    </div>
+  );
+}
+
 export default function App() {
   const [nav, setNav] = useState("dashboard");
   const [activeRunId, setActiveRunId] = useState(null);
@@ -74,46 +102,35 @@ export default function App() {
     () => [...logs, ...runEvents.map(mapEventToLog)],
     [logs, runEvents]
   );
-
-  const handleRunStarted = useCallback((runId) => {
-    setActiveRunId(runId);
-  }, [setActiveRunId]);
-
-  const handleResumed = useCallback(() => {
-    // nothing to do — polling picks up the resumed run automatically
-  }, []);
-
+  const handleRunStarted = useCallback((id) => setActiveRunId(id), []);
+  const handleResumed = useCallback(() => {}, []);
   const busy = isRunBusy(activeRun);
-  const phaseStatus = activeRun
-    ? `run ${activeRun.id.slice(0, 8)} · ${activeRun.status}`
-    : "phase-3 · intake ready · awaiting phase-4 architect";
+  const phaseStatus = computePhaseStatus(activeRun);
 
   return (
     <div className="App min-h-screen" data-testid="app-root">
       <Header health={health} />
       <div className="flex">
         <Sidebar active={nav} onSelect={setNav} />
-
         <main className="flex-1 p-4 md:p-6 space-y-6 relative">
           <ErrorBanner error={error || runError} />
           <PhaseBanner phases={phases} />
-
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-            <div className="xl:col-span-2 space-y-6">
-              <AgentPipeline pipeline={pipeline} statuses={statuses} />
-              <SpecificationCard run={activeRun} />
-              <ArchitectureCard run={activeRun} />
-              <TaskListCard run={activeRun} />
-              {config && <ConfigPanel config={config} agents={agents} />}
-            </div>
-            <div className="space-y-6">
-              <RunSummary run={activeRun} />
-              <ClarificationCard run={activeRun} onResumed={handleResumed} />
-              <SpecEditor onRunStarted={handleRunStarted} busy={busy} />
-              <LogTerminal lines={mergedLogs} />
-            </div>
+            <MainColumn
+              pipeline={pipeline}
+              statuses={statuses}
+              activeRun={activeRun}
+              config={config}
+              agents={agents}
+            />
+            <SideColumn
+              activeRun={activeRun}
+              onRunStarted={handleRunStarted}
+              onResumed={handleResumed}
+              busy={busy}
+              logs={mergedLogs}
+            />
           </div>
-
           <DashboardFooter phaseStatus={phaseStatus} />
         </main>
       </div>

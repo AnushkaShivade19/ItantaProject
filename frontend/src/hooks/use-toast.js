@@ -143,6 +143,9 @@ function useToast() {
         listeners.splice(index, 1)
       }
     };
+    // listeners is a module-level mutable singleton; setState from useState
+    // is stable. Subscribe-once-on-mount is the correct semantic here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setState])
 
   return {

@@ -23,7 +23,6 @@ const appendCapped = (prev, entry) => {
   return next.length > MAX_LOG_LINES ? next.slice(-MAX_LOG_LINES) : next;
 };
 
-/** Load all static dashboard data in one shot. */
 const loadDashboardData = () =>
   Promise.all([
     fetchHealth(),
@@ -39,37 +38,51 @@ const loadDashboardData = () =>
     phases,
   }));
 
-/** Apply a successful boot payload to state setters. */
-const applyBoot = (payload, setters, addLog) => {
-  setters.setHealth(payload.health);
-  setters.setConfig(payload.config);
-  setters.setPipeline(payload.pipeline);
-  setters.setAgents(payload.agents);
-  setters.setPhases(payload.phases);
-  addLog(
-    `health=${payload.health.status} v${payload.health.version}`,
-    "success",
-    "health"
-  );
-  addLog(
-    payload.health.groq_key_configured
-      ? "groq key configured"
-      : "groq key missing — add to backend/.env",
-    payload.health.groq_key_configured ? "success" : "warn",
-    "groq"
-  );
-  addLog(
-    `loaded ${payload.pipeline.length} agents · ${payload.phases.length} phases`,
-    "info",
-    "orchestrator"
-  );
-  addLog("scaffold ready", "running", "phase");
+const groqStatusLog = (groqOk) => ({
+  msg: groqOk ? "groq key configured" : "groq key missing — add to backend/.env",
+  level: groqOk ? "success" : "warn",
+});
+
+const runBootSequence = async (mountedRef, setters, addLog, setError) => {
+  try {
+    const payload = await loadDashboardData();
+    if (!mountedRef.current) return;
+    setters.setHealth(payload.health);
+    setters.setConfig(payload.config);
+    setters.setPipeline(payload.pipeline);
+    setters.setAgents(payload.agents);
+    setters.setPhases(payload.phases);
+    addLog(`health=${payload.health.status} v${payload.health.version}`, "success", "health");
+    const g = groqStatusLog(payload.health.groq_key_configured);
+    addLog(g.msg, g.level, "groq");
+    addLog(
+      `loaded ${payload.pipeline.length} agents · ${payload.phases.length} phases`,
+      "info",
+      "orchestrator"
+    );
+    addLog("scaffold ready", "running", "phase");
+  } catch (e) {
+    if (!mountedRef.current) return;
+    setError(String(e));
+    addLog(`bootstrap failed: ${e.message}`, "error", "ui");
+  }
+};
+
+const startHealthPoller = (mountedRef, setHealth) => {
+  const refresh = async () => {
+    try {
+      const h = await fetchHealth();
+      if (mountedRef.current) setHealth(h);
+    } catch (err) {
+      console.warn("[health-refresh] failed:", err?.message || err);
+    }
+  };
+  return setInterval(refresh, HEALTH_REFRESH_INTERVAL_MS);
 };
 
 /**
- * Boots the dashboard: loads static metadata once, then polls health
- * on a fixed interval. Exposes a capped log buffer with a stable
- * `addLog` reference.
+ * Boots the dashboard once, then polls health on a fixed interval.
+ * Exposes a capped log buffer with a stable `addLog` reference.
  */
 export function useAgenticBoot() {
   const [health, setHealth] = useState(null);
@@ -81,8 +94,9 @@ export function useAgenticBoot() {
   const [error, setError] = useState(null);
   const mountedRef = useRef(true);
 
-  // Params can never be React deps; all other closure values are
-  // module-level and stable. Empty deps is correct here.
+  // addLog params (msg/level/agent) and module-level helpers (makeLogEntry,
+  // appendCapped, MAX_LOG_LINES) are categorically not React deps.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const addLog = useCallback((msg, level = "info", agent = "system") => {
     setLogs((prev) => appendCapped(prev, makeLogEntry(msg, level, agent)));
   }, []);
@@ -90,29 +104,9 @@ export function useAgenticBoot() {
   useEffect(() => {
     mountedRef.current = true;
     addLog("bootstrapping dashboard ...", "info", "ui");
-
     const setters = { setHealth, setConfig, setPipeline, setAgents, setPhases };
-    loadDashboardData()
-      .then((payload) => {
-        if (!mountedRef.current) return;
-        applyBoot(payload, setters, addLog);
-      })
-      .catch((e) => {
-        if (!mountedRef.current) return;
-        setError(String(e));
-        addLog(`bootstrap failed: ${e.message}`, "error", "ui");
-      });
-
-    const refreshHealth = async () => {
-      try {
-        const h = await fetchHealth();
-        if (mountedRef.current) setHealth(h);
-      } catch (err) {
-        console.warn("[health-refresh] failed:", err?.message || err);
-      }
-    };
-    const intervalId = setInterval(refreshHealth, HEALTH_REFRESH_INTERVAL_MS);
-
+    runBootSequence(mountedRef, setters, addLog, setError);
+    const intervalId = startHealthPoller(mountedRef, setHealth);
     return () => {
       mountedRef.current = false;
       clearInterval(intervalId);
