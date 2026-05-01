@@ -19,15 +19,16 @@ Core requirements:
 - UI: **Full React dashboard** (Swiss / terminal aesthetic)
 - Delivery: **Strict phased delivery** — pause after each phase
 - Scope: Full-stack, any-language project generation
-- ZIP download: yes
+- ZIP download: yes (Phase 8)
 
 ## Architecture
 - Backend: FastAPI (`/app/backend`), Groq SDK, MongoDB, PyYAML, pytest, rich (CLI)
 - Frontend: React 19 + Tailwind + Phosphor Icons + shadcn primitives
-- Agents live in `/app/backend/agents/*`; orchestration in `/app/backend/core/*`
+- Agents: `/app/backend/agents/*` (base_agent + 7 placeholders)
+- Orchestration: `/app/backend/core/*` (orchestrator, state_manager, logger)
 - Runtime config: `/app/backend/config/config.yaml`
 - Output projects: `/app/backend/output_projects/<run-id>/`
-- Logs: `/app/backend/logs/framework.log` + JSONL event streams in `logs/events/`
+- Logs: `/app/backend/logs/framework.log` + JSONL events in `logs/events/` + run snapshots in `logs/runs/`
 
 ## Personas
 - Solo indie dev who wants to scaffold a microservice from a 1-paragraph brief
@@ -37,36 +38,30 @@ Core requirements:
 ## Phase Progress
 
 ### ✅ Phase 1 — Project Setup (2026-02-01)
-- Folder structure: `agents/`, `core/`, `config/`, `logs/`, `output_projects/`
-- `config.yaml` with LLM + retry + guardrail settings
-- `main.py` CLI entry (`run`, `status`, `config` subcommands) with rich output
-- `core/state_manager.py` (RunState, AgentState, singleton)
-- `core/orchestrator.py` (scaffold — `run()` is NotImplementedError)
-- `core/logger.py` (file + JSONL event logger)
-- `agents/base_agent.py` (abstract contract, Groq key helper)
-- 7 agent placeholder classes (all raise NotImplementedError for later phases)
-- FastAPI endpoints: `/api/health`, `/api/config`, `/api/pipeline`, `/api/agents`, `/api/phases`, `/api/runs`
-- React dashboard shell: Header, Sidebar, PhaseBanner, AgentPipeline, ConfigPanel, LogTerminal
-- Fonts loaded: Cabinet Grotesk (heading), IBM Plex Sans (body), JetBrains Mono (code)
-- GROQ key status indicator in header
-- `backend/.env` adds `GROQ_API_KEY=""` (user to fill before Phase 3)
+- Folder structure, config.yaml, CLI (`main.py`), empty agent placeholders
+- FastAPI base endpoints: `/health`, `/config`, `/pipeline`, `/agents`, `/phases`, `/runs`
+- React dashboard shell (Header, Sidebar, PhaseBanner, AgentPipeline, ConfigPanel, LogTerminal)
 
-### 🟡 Phase 2 — Core Orchestrator (PENDING CONFIRMATION)
-- Wire workflow: Intake → Architect → Planner → QA → Coder → Validator → Recovery
-- Per-run state persistence
-- Real-time event streaming endpoint (SSE) for dashboard logs
-- Run lifecycle API: POST `/api/runs`, GET `/api/runs/{id}`, GET `/api/runs/{id}/events`
+### ✅ Phase 2 — Core Orchestrator (2026-02-01)
+- **State manager** with per-mutation disk persistence (`logs/runs/{run_id}.json`), automatic event emission, full setters (`set_specification`, `add_task`, `mark_task`, `set_test_results`, `set_summary`, `mark_agent`)
+- **Orchestrator.run()** — iterates all 7 agents, respects retry policy (`max_attempts`, `backoff_seconds`, `hard_fail_after`), catches `NotImplementedError` → marks agent `skipped` (Phase 2 dry-run)
+- **AgentStatus.skipped** enum + CSS state for muted skipped visualisation
+- **Logging**: every state mutation emits a structured event via `core.logger.event()` → JSONL events + framework.log
+- **New endpoints**: `POST /api/runs`, `POST /api/runs/{id}/start` (background task), `GET /api/runs/{id}?since=` (polling)
+- **Frontend**: `SpecEditor` component (working launch button with sample pills), `RunSummary` (live run state panel), `useActiveRun` hook (polls every 700ms, stops on terminal state), live event stream merged into log terminal
+- **Verified E2E**: POST spec → run completes in ~2s → all 7 agents `skipped` → 26 events logged → dashboard updates live
+- Version bumped to **0.2.0**; `/api/phases` reflects Phase 1+2 complete, Phase 3 current
 
-### Phase 3 — Intake Agent
-- Groq call, clarifying questions, emits `specification` JSON
-- Dashboard: spec editor enabled, clarification chat
+### 🟡 Phase 3 — Intake Agent (PENDING CONFIRMATION)
+- Real Groq LLM calls: clarifying questions loop, structured JSON spec emission
+- Requires GROQ_API_KEY in `/app/backend/.env`
+- Dashboard: spec editor evolves into chat-style clarification UI
 
 ### Phase 4 — Architect + Planner
-- System design (folders, APIs, DB schema)
-- Atomic testable tasks
+- System design (folders, APIs, DB schema) + atomic testable tasks
 
 ### Phase 5 — QA Agent (TDD)
-- Failing pytest cases first
+- Failing pytest cases emitted first
 
 ### Phase 6 — Coder Agent
 - Implementation to pass tests
@@ -78,9 +73,9 @@ Core requirements:
 - Full pipeline demo, ZIP download, summary report
 
 ## Known Pending / Gaps
-- **GROQ_API_KEY is empty** — dashboard header reflects this. User must add before Phase 3.
-- Orchestrator `run()` raises NotImplementedError (intentional, Phase 2).
+- **GROQ_API_KEY is empty** in `/app/backend/.env`. Dashboard header shows amber "unset". Required before Phase 3.
+- All 7 agent `execute()` methods still raise NotImplementedError — intentional until their owning phase.
 
 ## Next Actions
-1. Await user confirmation to proceed with **Phase 2 — Core Orchestrator**.
-2. Add Groq API key to `/app/backend/.env` at any time before Phase 3.
+1. Await user confirmation to proceed with **Phase 3 — Intake Agent**.
+2. Add Groq API key to `/app/backend/.env` before Phase 3 starts.

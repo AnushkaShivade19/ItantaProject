@@ -16,10 +16,13 @@ from typing import Any
 
 ROOT = Path(__file__).parent.parent
 LOGS_DIR = ROOT / "logs"
+EVENTS_DIR = LOGS_DIR / "events"
 LOGS_DIR.mkdir(parents=True, exist_ok=True)
-(LOGS_DIR / "events").mkdir(parents=True, exist_ok=True)
+EVENTS_DIR.mkdir(parents=True, exist_ok=True)
 
 _LOG_PATH = LOGS_DIR / "framework.log"
+
+_ALLOWED_PY_LEVELS = {"info", "warning", "error", "debug"}
 
 
 def _root_logger() -> logging.Logger:
@@ -42,9 +45,13 @@ def _root_logger() -> logging.Logger:
 log = _root_logger()
 
 
-def event(run_id: str, level: str, agent: str, message: str, **extra: Any) -> dict:
-    """Emit a structured event -> stdout + events file + returns dict."""
-    ev = {
+def _events_file(run_id: str) -> Path:
+    return EVENTS_DIR / f"{run_id}.jsonl"
+
+
+def event(run_id: str, level: str, agent: str, message: str, **extra: Any) -> dict[str, Any]:
+    """Emit a structured event — logs to stdout + events file + returns dict."""
+    ev: dict[str, Any] = {
         "ts": datetime.now(timezone.utc).isoformat(),
         "run_id": run_id,
         "level": level,
@@ -52,18 +59,24 @@ def event(run_id: str, level: str, agent: str, message: str, **extra: Any) -> di
         "message": message,
         **extra,
     }
-    getattr(log, level.lower() if level.lower() in {"info", "warning", "error", "debug"} else "info")(
-        f"[{run_id[:8]}][{agent}] {message}"
-    )
-    path = LOGS_DIR / "events" / f"{run_id}.jsonl"
-    with path.open("a", encoding="utf-8") as fh:
+    py_level = level.lower() if level.lower() in _ALLOWED_PY_LEVELS else "info"
+    getattr(log, py_level)(f"[{run_id[:8]}][{agent}] {message}")
+    with _events_file(run_id).open("a", encoding="utf-8") as fh:
         fh.write(json.dumps(ev) + "\n")
     return ev
 
 
-def read_events(run_id: str) -> list[dict]:
-    path = LOGS_DIR / "events" / f"{run_id}.jsonl"
+def read_events(run_id: str) -> list[dict[str, Any]]:
+    path = _events_file(run_id)
     if not path.exists():
         return []
     with path.open("r", encoding="utf-8") as fh:
         return [json.loads(line) for line in fh if line.strip()]
+
+
+def read_events_since(run_id: str, since_ts: str | None = None) -> list[dict[str, Any]]:
+    """Return events strictly newer than `since_ts` (ISO string)."""
+    events = read_events(run_id)
+    if not since_ts:
+        return events
+    return [e for e in events if e["ts"] > since_ts]

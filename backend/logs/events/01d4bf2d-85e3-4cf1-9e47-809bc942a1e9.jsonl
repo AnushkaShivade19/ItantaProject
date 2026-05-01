@@ -1,0 +1,26 @@
+{"ts": "2026-05-01T05:16:49.063848+00:00", "run_id": "01d4bf2d-85e3-4cf1-9e47-809bc942a1e9", "level": "info", "agent": "state", "message": "run created", "spec_preview": "Build a todo app with FastAPI + React + MongoDB"}
+{"ts": "2026-05-01T05:16:49.192273+00:00", "run_id": "01d4bf2d-85e3-4cf1-9e47-809bc942a1e9", "level": "info", "agent": "state", "message": "run updated: ['status']"}
+{"ts": "2026-05-01T05:16:49.192414+00:00", "run_id": "01d4bf2d-85e3-4cf1-9e47-809bc942a1e9", "level": "info", "agent": "orchestrator", "message": "pipeline start \u00b7 7 agents", "pipeline": ["intake", "architect", "planner", "qa", "coder", "validator", "recovery"]}
+{"ts": "2026-05-01T05:16:49.193958+00:00", "run_id": "01d4bf2d-85e3-4cf1-9e47-809bc942a1e9", "level": "running", "agent": "intake", "message": "agent \u2192 running", "attempts": 0, "error": null}
+{"ts": "2026-05-01T05:16:49.195301+00:00", "run_id": "01d4bf2d-85e3-4cf1-9e47-809bc942a1e9", "level": "warn", "agent": "intake", "message": "agent \u2192 skipped", "attempts": 1, "error": null}
+{"ts": "2026-05-01T05:16:49.195453+00:00", "run_id": "01d4bf2d-85e3-4cf1-9e47-809bc942a1e9", "level": "warn", "agent": "intake", "message": "skipped (NotImplementedError) \u2014 Phase 2 dry-run"}
+{"ts": "2026-05-01T05:16:49.196685+00:00", "run_id": "01d4bf2d-85e3-4cf1-9e47-809bc942a1e9", "level": "running", "agent": "architect", "message": "agent \u2192 running", "attempts": 0, "error": null}
+{"ts": "2026-05-01T05:16:49.197887+00:00", "run_id": "01d4bf2d-85e3-4cf1-9e47-809bc942a1e9", "level": "warn", "agent": "architect", "message": "agent \u2192 skipped", "attempts": 1, "error": null}
+{"ts": "2026-05-01T05:16:49.198042+00:00", "run_id": "01d4bf2d-85e3-4cf1-9e47-809bc942a1e9", "level": "warn", "agent": "architect", "message": "skipped (NotImplementedError) \u2014 Phase 2 dry-run"}
+{"ts": "2026-05-01T05:16:49.199084+00:00", "run_id": "01d4bf2d-85e3-4cf1-9e47-809bc942a1e9", "level": "running", "agent": "planner", "message": "agent \u2192 running", "attempts": 0, "error": null}
+{"ts": "2026-05-01T05:16:49.200203+00:00", "run_id": "01d4bf2d-85e3-4cf1-9e47-809bc942a1e9", "level": "warn", "agent": "planner", "message": "agent \u2192 skipped", "attempts": 1, "error": null}
+{"ts": "2026-05-01T05:16:49.200303+00:00", "run_id": "01d4bf2d-85e3-4cf1-9e47-809bc942a1e9", "level": "warn", "agent": "planner", "message": "skipped (NotImplementedError) \u2014 Phase 2 dry-run"}
+{"ts": "2026-05-01T05:16:49.201311+00:00", "run_id": "01d4bf2d-85e3-4cf1-9e47-809bc942a1e9", "level": "running", "agent": "qa", "message": "agent \u2192 running", "attempts": 0, "error": null}
+{"ts": "2026-05-01T05:16:49.202419+00:00", "run_id": "01d4bf2d-85e3-4cf1-9e47-809bc942a1e9", "level": "warn", "agent": "qa", "message": "agent \u2192 skipped", "attempts": 1, "error": null}
+{"ts": "2026-05-01T05:16:49.202520+00:00", "run_id": "01d4bf2d-85e3-4cf1-9e47-809bc942a1e9", "level": "warn", "agent": "qa", "message": "skipped (NotImplementedError) \u2014 Phase 2 dry-run"}
+{"ts": "2026-05-01T05:16:49.203485+00:00", "run_id": "01d4bf2d-85e3-4cf1-9e47-809bc942a1e9", "level": "running", "agent": "coder", "message": "agent \u2192 running", "attempts": 0, "error": null}
+{"ts": "2026-05-01T05:16:49.204601+00:00", "run_id": "01d4bf2d-85e3-4cf1-9e47-809bc942a1e9", "level": "warn", "agent": "coder", "message": "agent \u2192 skipped", "attempts": 1, "error": null}
+{"ts": "2026-05-01T05:16:49.204693+00:00", "run_id": "01d4bf2d-85e3-4cf1-9e47-809bc942a1e9", "level": "warn", "agent": "coder", "message": "skipped (NotImplementedError) \u2014 Phase 2 dry-run"}
+{"ts": "2026-05-01T05:16:49.205703+00:00", "run_id": "01d4bf2d-85e3-4cf1-9e47-809bc942a1e9", "level": "running", "agent": "validator", "message": "agent \u2192 running", "attempts": 0, "error": null}
+{"ts": "2026-05-01T05:16:49.206765+00:00", "run_id": "01d4bf2d-85e3-4cf1-9e47-809bc942a1e9", "level": "warn", "agent": "validator", "message": "agent \u2192 skipped", "attempts": 1, "error": null}
+{"ts": "2026-05-01T05:16:49.206855+00:00", "run_id": "01d4bf2d-85e3-4cf1-9e47-809bc942a1e9", "level": "warn", "agent": "validator", "message": "skipped (NotImplementedError) \u2014 Phase 2 dry-run"}
+{"ts": "2026-05-01T05:16:49.207960+00:00", "run_id": "01d4bf2d-85e3-4cf1-9e47-809bc942a1e9", "level": "running", "agent": "recovery", "message": "agent \u2192 running", "attempts": 0, "error": null}
+{"ts": "2026-05-01T05:16:49.209176+00:00", "run_id": "01d4bf2d-85e3-4cf1-9e47-809bc942a1e9", "level": "warn", "agent": "recovery", "message": "agent \u2192 skipped", "attempts": 1, "error": null}
+{"ts": "2026-05-01T05:16:49.209284+00:00", "run_id": "01d4bf2d-85e3-4cf1-9e47-809bc942a1e9", "level": "warn", "agent": "recovery", "message": "skipped (NotImplementedError) \u2014 Phase 2 dry-run"}
+{"ts": "2026-05-01T05:16:49.210265+00:00", "run_id": "01d4bf2d-85e3-4cf1-9e47-809bc942a1e9", "level": "info", "agent": "state", "message": "run updated: ['status']"}
+{"ts": "2026-05-01T05:16:49.210366+00:00", "run_id": "01d4bf2d-85e3-4cf1-9e47-809bc942a1e9", "level": "success", "agent": "orchestrator", "message": "pipeline complete", "total_retries": 0}

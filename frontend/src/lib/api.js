@@ -10,9 +10,22 @@ export const api = axios.create({
   timeout: API_TIMEOUT_MS,
 });
 
+// ---- read ----
 export const fetchHealth = () => api.get("/health").then((r) => r.data);
 export const fetchConfig = () => api.get("/config").then((r) => r.data);
 export const fetchPipeline = () => api.get("/pipeline").then((r) => r.data);
 export const fetchAgents = () => api.get("/agents").then((r) => r.data);
 export const fetchPhases = () => api.get("/phases").then((r) => r.data);
 export const fetchRuns = () => api.get("/runs").then((r) => r.data);
+
+export const fetchRun = (runId, since = null) => {
+  const params = since ? { since } : {};
+  return api.get(`/runs/${runId}`, { params }).then((r) => r.data);
+};
+
+// ---- write ----
+export const createRun = (specInput) =>
+  api.post("/runs", { spec_input: specInput }).then((r) => r.data);
+
+export const startRun = (runId) =>
+  api.post(`/runs/${runId}/start`).then((r) => r.data);
