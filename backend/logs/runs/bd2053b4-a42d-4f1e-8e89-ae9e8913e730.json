@@ -1,0 +1,373 @@
+{
+  "id": "bd2053b4-a42d-4f1e-8e89-ae9e8913e730",
+  "spec_input": "Build a simple bookmark manager called pinit with FastAPI + SQLite backend. Features: add bookmark with url and title, list all bookmarks, delete by id, search by keyword in title. Acceptance: bookmarks persist between restarts; search is case-insensitive.",
+  "status": "completed",
+  "phase": "phase-2-orchestrator",
+  "created_at": "2026-05-01T07:38:16.187051+00:00",
+  "updated_at": "2026-05-01T07:40:05.835851+00:00",
+  "specification": {
+    "project_name": "pinit",
+    "description": "A simple bookmark manager with features for adding, listing, deleting, and searching bookmarks.",
+    "features": [
+      "add bookmark with url and title",
+      "list all bookmarks",
+      "delete by id",
+      "search by keyword in title"
+    ],
+    "constraints": [],
+    "tech_stack": {
+      "frontend": null,
+      "backend": "FastAPI",
+      "database": "SQLite",
+      "other": []
+    },
+    "acceptance_criteria": [
+      "bookmarks persist between restarts",
+      "search is case-insensitive"
+    ],
+    "mode": "spec",
+    "clarifications": []
+  },
+  "architecture": {
+    "folder_structure": {
+      "name": "pinit",
+      "type": "dir",
+      "children": [
+        {
+          "name": "main.py",
+          "type": "file",
+          "purpose": "FastAPI app entrypoint"
+        },
+        {
+          "name": "models",
+          "type": "dir",
+          "children": [
+            {
+              "name": "bookmark.py",
+              "type": "file",
+              "purpose": "database model for bookmarks"
+            }
+          ]
+        },
+        {
+          "name": "database",
+          "type": "dir",
+          "children": [
+            {
+              "name": "pinit.db",
+              "type": "file",
+              "purpose": "SQLite database file"
+            }
+          ]
+        },
+        {
+          "name": "tests",
+          "type": "dir",
+          "children": [
+            {
+              "name": "test_bookmark.py",
+              "type": "file",
+              "purpose": "unit tests for bookmark model"
+            }
+          ]
+        },
+        {
+          "name": "README.md",
+          "type": "file",
+          "purpose": "project documentation"
+        }
+      ]
+    },
+    "apis": [
+      {
+        "method": "POST",
+        "path": "/api/bookmarks",
+        "purpose": "add a new bookmark",
+        "request": {
+          "url": "string",
+          "title": "string"
+        },
+        "response": {
+          "id": "integer",
+          "url": "string",
+          "title": "string"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/bookmarks",
+        "purpose": "list all bookmarks",
+        "response": [
+          {
+            "id": "integer",
+            "url": "string",
+            "title": "string"
+          }
+        ]
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/bookmarks/{id}",
+        "purpose": "delete a bookmark by id",
+        "response": {
+          "message": "string"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/bookmarks/search",
+        "purpose": "search bookmarks by keyword in title",
+        "request": {
+          "keyword": "string"
+        },
+        "response": [
+          {
+            "id": "integer",
+            "url": "string",
+            "title": "string"
+          }
+        ]
+      }
+    ],
+    "db_schema": [
+      {
+        "name": "bookmarks",
+        "fields": [
+          {
+            "name": "id",
+            "type": "integer",
+            "constraints": [
+              "pk",
+              "auto_increment"
+            ]
+          },
+          {
+            "name": "url",
+            "type": "text",
+            "constraints": [
+              "not_null"
+            ]
+          },
+          {
+            "name": "title",
+            "type": "text",
+            "constraints": [
+              "not_null"
+            ]
+          }
+        ],
+        "indexes": [
+          "title"
+        ]
+      }
+    ],
+    "modules": [
+      {
+        "name": "bookmark",
+        "responsibility": "CRUD operations for bookmarks"
+      },
+      {
+        "name": "database",
+        "responsibility": "SQLite database interactions"
+      }
+    ]
+  },
+  "tasks": [
+    {
+      "id": "t-001",
+      "title": "Create database schema",
+      "detail": "Create the SQLite database schema for the bookmarks table with id, url, and title fields. The id field should be the primary key and auto-incrementing. The url and title fields should not be null. An index should be created on the title field.",
+      "status": "in_progress",
+      "depends_on": [],
+      "files": [
+        "database/pinit.db",
+        "models/bookmark.py"
+      ],
+      "test_focus": "Verify that the database schema is created correctly with the specified fields and constraints.",
+      "test_file_path": "output_projects/bd2053b4-a42d-4f1e-8e89-ae9e8913e730/tests/test_t-001.py",
+      "code_file_paths": [],
+      "created_at": "2026-05-01T07:38:20.968598+00:00"
+    },
+    {
+      "id": "t-002",
+      "title": "Implement bookmark model",
+      "detail": "Create a Python class to represent a bookmark with id, url, and title attributes. The class should have methods to create, read, update, and delete bookmarks from the database.",
+      "status": "in_progress",
+      "depends_on": [
+        "t-001"
+      ],
+      "files": [
+        "models/bookmark.py"
+      ],
+      "test_focus": "Verify that the bookmark model can create, read, update, and delete bookmarks correctly.",
+      "test_file_path": "output_projects/bd2053b4-a42d-4f1e-8e89-ae9e8913e730/tests/test_t-002.py",
+      "code_file_paths": [],
+      "created_at": "2026-05-01T07:38:20.969182+00:00"
+    },
+    {
+      "id": "t-003",
+      "title": "Create API endpoint for adding bookmarks",
+      "detail": "Create a POST API endpoint at /api/bookmarks to add new bookmarks. The endpoint should accept a JSON payload with url and title fields and return the created bookmark with its id.",
+      "status": "in_progress",
+      "depends_on": [
+        "t-002"
+      ],
+      "files": [
+        "main.py"
+      ],
+      "test_focus": "Verify that the API endpoint can add new bookmarks correctly and return the created bookmark with its id.",
+      "test_file_path": "output_projects/bd2053b4-a42d-4f1e-8e89-ae9e8913e730/tests/test_t-003.py",
+      "code_file_paths": [],
+      "created_at": "2026-05-01T07:38:20.971550+00:00"
+    },
+    {
+      "id": "t-004",
+      "title": "Create API endpoint for listing bookmarks",
+      "detail": "Create a GET API endpoint at /api/bookmarks to list all bookmarks. The endpoint should return a list of bookmarks with their id, url, and title fields.",
+      "status": "in_progress",
+      "depends_on": [
+        "t-002"
+      ],
+      "files": [
+        "main.py"
+      ],
+      "test_focus": "Verify that the API endpoint can list all bookmarks correctly and return the expected fields.",
+      "test_file_path": "output_projects/bd2053b4-a42d-4f1e-8e89-ae9e8913e730/tests/test_t-004.py",
+      "code_file_paths": [],
+      "created_at": "2026-05-01T07:38:20.973882+00:00"
+    },
+    {
+      "id": "t-005",
+      "title": "Create API endpoint for deleting bookmarks",
+      "detail": "Create a DELETE API endpoint at /api/bookmarks/{id} to delete a bookmark by its id. The endpoint should return a success message after deleting the bookmark.",
+      "status": "in_progress",
+      "depends_on": [
+        "t-002"
+      ],
+      "files": [
+        "main.py"
+      ],
+      "test_focus": "Verify that the API endpoint can delete a bookmark correctly and return a success message.",
+      "test_file_path": "output_projects/bd2053b4-a42d-4f1e-8e89-ae9e8913e730/tests/test_t-005.py",
+      "code_file_paths": [],
+      "created_at": "2026-05-01T07:38:20.976145+00:00"
+    },
+    {
+      "id": "t-006",
+      "title": "Create API endpoint for searching bookmarks",
+      "detail": "Create a GET API endpoint at /api/bookmarks/search to search bookmarks by keyword in their title. The endpoint should accept a keyword query parameter and return a list of bookmarks with their id, url, and title fields that match the search keyword.",
+      "status": "in_progress",
+      "depends_on": [
+        "t-002"
+      ],
+      "files": [
+        "main.py"
+      ],
+      "test_focus": "Verify that the API endpoint can search bookmarks correctly and return the expected fields.",
+      "test_file_path": "output_projects/bd2053b4-a42d-4f1e-8e89-ae9e8913e730/tests/test_t-006.py",
+      "code_file_paths": [],
+      "created_at": "2026-05-01T07:38:20.978390+00:00"
+    },
+    {
+      "id": "t-007",
+      "title": "Implement case-insensitive search",
+      "detail": "Modify the search API endpoint to perform case-insensitive searches. The endpoint should return bookmarks with titles that match the search keyword regardless of case.",
+      "status": "in_progress",
+      "depends_on": [
+        "t-006"
+      ],
+      "files": [
+        "main.py"
+      ],
+      "test_focus": "Verify that the search API endpoint performs case-insensitive searches correctly.",
+      "test_file_path": "output_projects/bd2053b4-a42d-4f1e-8e89-ae9e8913e730/tests/test_t-007.py",
+      "code_file_paths": [],
+      "created_at": "2026-05-01T07:38:20.980765+00:00"
+    },
+    {
+      "id": "t-008",
+      "title": "Test bookmark persistence",
+      "detail": "Test that bookmarks persist between restarts of the application. The test should add a bookmark, restart the application, and then verify that the bookmark is still present.",
+      "status": "in_progress",
+      "depends_on": [
+        "t-003",
+        "t-004"
+      ],
+      "files": [
+        "tests/test_bookmark.py"
+      ],
+      "test_focus": "Verify that bookmarks persist between restarts of the application.",
+      "test_file_path": "output_projects/bd2053b4-a42d-4f1e-8e89-ae9e8913e730/tests/test_t-008.py",
+      "code_file_paths": [],
+      "created_at": "2026-05-01T07:38:20.983037+00:00"
+    }
+  ],
+  "test_results": null,
+  "summary_report": null,
+  "output_dir": "/app/backend/output_projects/bd2053b4-a42d-4f1e-8e89-ae9e8913e730",
+  "agents": {
+    "intake": {
+      "name": "intake",
+      "status": "success",
+      "started_at": "2026-05-01T07:38:16.335222+00:00",
+      "ended_at": "2026-05-01T07:38:17.742452+00:00",
+      "attempts": 1,
+      "last_error": null,
+      "output_summary": "spec: pinit"
+    },
+    "architect": {
+      "name": "architect",
+      "status": "success",
+      "started_at": "2026-05-01T07:38:17.743597+00:00",
+      "ended_at": "2026-05-01T07:38:18.973122+00:00",
+      "attempts": 1,
+      "last_error": null,
+      "output_summary": "arch: 4 APIs \u00b7 1 tables \u00b7 2 modules"
+    },
+    "planner": {
+      "name": "planner",
+      "status": "success",
+      "started_at": "2026-05-01T07:38:18.975239+00:00",
+      "ended_at": "2026-05-01T07:38:20.985325+00:00",
+      "attempts": 1,
+      "last_error": null,
+      "output_summary": "plan: 8 atomic tasks"
+    },
+    "qa": {
+      "name": "qa",
+      "status": "success",
+      "started_at": "2026-05-01T07:38:20.987452+00:00",
+      "ended_at": "2026-05-01T07:40:05.819306+00:00",
+      "attempts": 1,
+      "last_error": null,
+      "output_summary": "qa: 8 failing test files written"
+    },
+    "coder": {
+      "name": "coder",
+      "status": "skipped",
+      "started_at": "2026-05-01T07:40:05.821516+00:00",
+      "ended_at": "2026-05-01T07:40:05.825765+00:00",
+      "attempts": 1,
+      "last_error": null,
+      "output_summary": "dry-run \u00b7 agent body arrives in a later phase"
+    },
+    "validator": {
+      "name": "validator",
+      "status": "skipped",
+      "started_at": "2026-05-01T07:40:05.826618+00:00",
+      "ended_at": "2026-05-01T07:40:05.830359+00:00",
+      "attempts": 1,
+      "last_error": null,
+      "output_summary": "dry-run \u00b7 agent body arrives in a later phase"
+    },
+    "recovery": {
+      "name": "recovery",
+      "status": "skipped",
+      "started_at": "2026-05-01T07:40:05.831161+00:00",
+      "ended_at": "2026-05-01T07:40:05.835125+00:00",
+      "attempts": 1,
+      "last_error": null,
+      "output_summary": "dry-run \u00b7 agent body arrives in a later phase"
+    }
+  }
+}

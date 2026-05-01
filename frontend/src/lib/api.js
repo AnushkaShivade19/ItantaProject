@@ -32,3 +32,6 @@ export const startRun = (runId) =>
 
 export const answerRun = (runId, answers) =>
   api.post(`/runs/${runId}/answer`, { answers }).then((r) => r.data);
+
+export const fetchRunFile = (runId, path) =>
+  api.get(`/runs/${runId}/file`, { params: { path } }).then((r) => r.data);

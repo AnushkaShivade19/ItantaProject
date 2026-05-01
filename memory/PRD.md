@@ -1,9 +1,10 @@
 # Agentic AI Software Development Framework — PRD
 
 ## Original Problem Statement
-Build an "Agentic AI Software Development Framework" that takes a natural-language
-project specification and autonomously generates a working software project using
-multiple AI agents. TDD-first. 8 phases, strictly confirmed one at a time.
+Multi-agent autonomous software-generation framework. Natural-language spec →
+clarifications → architecture → atomic tasks → failing pytest → implementation →
+validation → ZIP export. TDD-FIRST is mandatory. 8 phases, strictly confirmed
+one at a time.
 
 ## User Choices (Feb 2026)
 - LLM provider: **Groq** (llama-3.3-70b smart / llama-3.1-8b fast)
@@ -16,47 +17,42 @@ multiple AI agents. TDD-first. 8 phases, strictly confirmed one at a time.
 - Backend: FastAPI, Groq async SDK, MongoDB, PyYAML, pytest
 - Frontend: React 19 + Tailwind + Phosphor Icons + shadcn primitives
 - Agents: `/app/backend/agents/*` (base + 7 agents)
-- Orchestration: `/app/backend/core/*` (orchestrator, state_manager, logger)
-- Logs: `logs/framework.log` + per-run JSONL events + run snapshots
+- Orchestration: `/app/backend/core/*`
+- Output projects: `/app/backend/output_projects/<run_id>/`
+- Logs: framework.log + per-run JSONL events + run snapshots
 
 ## Phase Progress
 
 ### ✅ Phase 1 — Project Setup (2026-02-01)
-Folder structure, config.yaml, CLI, FastAPI base, React dashboard shell.
-
 ### ✅ Phase 2 — Core Orchestrator (2026-02-01)
-State manager with disk persistence, run lifecycle, retry policy, dry-run skip,
-event logging, live-polling dashboard.
-
 ### ✅ Phase 3 — Intake Agent (2026-02-01)
-Real Groq calls with forced JSON mode. Multi-round clarification loop.
-Pause/resume orchestrator (`awaiting_input` status). Frontend ClarificationCard
-+ SpecificationCard.
-
 ### ✅ Phase 4 — Architect + Planner (2026-02-01)
-- **Architect Agent**: consumes `specification` → emits architecture JSON with
-  `folder_structure` (recursive tree), `apis` (HTTP method/path/purpose/req/resp),
-  `db_schema` (tables/fields/indexes), `modules` (name/responsibility).
-- **Planner Agent**: consumes spec + architecture → emits 6-15 atomic tasks with
-  `id`, `title`, `detail`, `depends_on`, `files`, `test_focus`. Each task is
-  small, testable, file-scoped.
-- **State extension**: `Task` model gained `depends_on`, `files`, `test_focus`
-  fields (preserved across disk persistence).
-- **Frontend**: `ArchitectureCard` (collapsible tree, API list with method colour
-  coding, table cards with field types/indexes, module chips), `TaskListCard`
-  (expandable rows showing detail + test_focus + files + dependency graph).
-- **Babel workaround**: replaced recursive `FolderNode` with iterative `flattenTree`
-  helper after hitting `Maximum call stack size exceeded` in babel-traverse.
-- **Verified E2E** with `noterly` spec: 7 APIs, 1 table, 4 modules, 19 tree rows,
-  9 atomic tasks generated. Run completes in ~5s (post-warmup).
-- Version bumped to **0.4.0**; `/api/phases` reflects Phase 4 complete, Phase 5 current.
 
-### 🟡 Phase 5 — QA Agent (TDD) (PENDING CONFIRMATION)
-For each task, generate FAILING pytest test cases first. Tests must cover the
-`test_focus` declared by the planner.
+### ✅ Phase 5 — QA Agent (TDD-FIRST) (2026-02-01)
+- **QA Agent**: iterates over planner tasks, asks Groq (forced JSON) for a
+  pytest test file per task. Each test file imports the (yet-to-exist) modules
+  from `task.files`, asserts behaviour from `task.test_focus`, includes 2-4
+  test functions covering happy path + edge cases, mocks externals via
+  `unittest.mock` (no extra packages).
+- **Persistence**: writes to `output_projects/<run_id>/tests/test_<task_id>.py`.
+  Updates `task.test_file_path` and marks `task.status = in_progress`.
+- **State extension**: Task gained `test_file_path`, `code_file_paths` fields.
+  StateManager gained `set_task_test_file()`, `set_task_code_files()` methods.
+- **Server**: new `GET /api/runs/{id}/file?path=...` with sandbox enforcement
+  (paths constrained to `output_projects/<run_id>/`).
+- **Frontend**: `TestSuiteCard` (TDD badge, file count, expandable rows, lazy
+  code load on expand, terminal-style code preview). TaskListCard rows show
+  `in_progress` status for tasks with tests.
+- **Verified TDD-first behaviour**: ran `pytest` on a generated test file — it
+  fails with `ModuleNotFoundError: No module named 'models'` (because Coder
+  hasn't built it yet). EXACTLY the TDD philosophy. 8-9 tests per project,
+  ~80 events per run.
+- Version **0.5.0**; Phase 5 complete in `/api/phases`, Phase 6 current.
 
-### Phase 6 — Coder Agent
-Implementation to pass the QA tests.
+### 🟡 Phase 6 — Coder Agent (PENDING CONFIRMATION)
+For each task, generate implementation code that makes the QA tests pass.
+Write under `output_projects/<run_id>/<file_path>` matching the
+architecture's folder structure.
 
 ### Phase 7 — Validator + Recovery
 Run pytest + lint, retry on failure, escalate to Recovery.
@@ -65,9 +61,9 @@ Run pytest + lint, retry on failure, escalate to Recovery.
 Full pipeline demo, ZIP download, summary report.
 
 ## Known Pending / Gaps
-- QA/Coder/Validator/Recovery agents still raise NotImplementedError (intentional).
-- First Groq call after backend restart can take 60-90s due to occasional rate-limit
-  retry; subsequent calls are fast (≤5s for full architect+planner run).
+- Coder/Validator/Recovery agents still raise NotImplementedError (intentional).
+- First Groq call after backend restart can take 60-90s due to occasional
+  rate-limit retry; subsequent calls fast (~30-50s for full 5-agent run).
 
 ## Next Actions
-Await user confirmation to proceed with **Phase 5 — QA Agent (TDD)**.
+Await user confirmation to proceed with **Phase 6 — Coder Agent**.

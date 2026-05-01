@@ -7,7 +7,7 @@
 
 framework:
   name: "Agentic AI Software Development Framework"
-  version: "0.4.0"
+  version: "0.5.0"
   mode: "tdd-first"    # tdd-first | code-first
 
 # ------------------------------------------------------------------

@@ -11,6 +11,7 @@ import ClarificationCard from "./components/ClarificationCard";
 import SpecificationCard from "./components/SpecificationCard";
 import ArchitectureCard from "./components/ArchitectureCard";
 import TaskListCard from "./components/TaskListCard";
+import TestSuiteCard from "./components/TestSuiteCard";
 import { useAgenticBoot } from "./hooks/useAgenticBoot";
 import { useActiveRun } from "./hooks/useActiveRun";
 import { EVENT_LEVEL_TO_LOG_LEVEL } from "./lib/constants";
@@ -73,6 +74,7 @@ function MainColumn({ pipeline, statuses, activeRun, config, agents }) {
       <SpecificationCard run={activeRun} />
       <ArchitectureCard run={activeRun} />
       <TaskListCard run={activeRun} />
+      <TestSuiteCard run={activeRun} />
       {config && <ConfigPanel config={config} agents={agents} />}
     </div>
   );

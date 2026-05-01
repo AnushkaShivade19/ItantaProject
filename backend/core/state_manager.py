@@ -81,6 +81,8 @@ class Task(BaseModel):
     depends_on: list[str] = Field(default_factory=list)
     files: list[str] = Field(default_factory=list)
     test_focus: str = ""
+    test_file_path: str | None = None
+    code_file_paths: list[str] = Field(default_factory=list)
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
@@ -211,6 +213,25 @@ class StateManager:
         self._touch(run_id)
         event(run_id, _task_event_level(status), "state",
               f"task → {status.value}", task_id=task_id)
+
+    def set_task_test_file(self, run_id: str, task_id: str, path: str) -> None:
+        run = self._runs[run_id]
+        for t in run.tasks:
+            if t.id == task_id:
+                t.test_file_path = path
+                break
+        self._touch(run_id)
+        event(run_id, "info", "state", f"task test file set · {path}", task_id=task_id)
+
+    def set_task_code_files(self, run_id: str, task_id: str, paths: list[str]) -> None:
+        run = self._runs[run_id]
+        for t in run.tasks:
+            if t.id == task_id:
+                t.code_file_paths = list(paths)
+                break
+        self._touch(run_id)
+        event(run_id, "info", "state",
+              f"task code files set · {len(paths)} file(s)", task_id=task_id)
 
     def set_test_results(self, run_id: str, results: dict[str, Any]) -> None:
         self._runs[run_id].test_results = results
