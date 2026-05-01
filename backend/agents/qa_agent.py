@@ -92,6 +92,9 @@ class QAAgent(BaseAgent):
         for task in run.tasks:
             path = await self._write_test_for_task(run_id, task, arch, out_dir)
             written.append({"task_id": task.id, "path": path})
+            # Spacing reduces 429s on Groq free-tier 70b TPM windows.
+            import asyncio
+            await asyncio.sleep(5.0)
 
         summary = f"qa: {len(written)} failing test files written"
         self.log(run_id, summary, level="success")

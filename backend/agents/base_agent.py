@@ -97,18 +97,36 @@ class BaseAgent(ABC):
 
         Raises if the key is missing, the response is not JSON, or the
         HTTP call fails — the orchestrator catches these as agent errors.
+        Honours `Retry-After` / "try again in Xs" hints from Groq 429s
+        by sleeping briefly before bubbling — the orchestrator's retry
+        wraps this for the actual re-attempt.
         """
+        import asyncio
+        import re
+
         self.require_key(run_id)
         messages = self._build_messages(system_prompt, user_prompt, extra_messages)
         self.log(run_id, f"groq call · model={self.model} temp={self.temperature}")
         client = self._groq_client()
-        response = await client.chat.completions.create(
-            model=self.model,
-            messages=messages,  # type: ignore[arg-type]
-            temperature=self.temperature,
-            max_tokens=self.max_tokens,
-            response_format={"type": "json_object"},
-        )
+        try:
+            response = await client.chat.completions.create(
+                model=self.model,
+                messages=messages,  # type: ignore[arg-type]
+                temperature=self.temperature,
+                max_tokens=self.max_tokens,
+                response_format={"type": "json_object"},
+            )
+        except Exception as exc:
+            text = str(exc)
+            if "429" in text or "rate_limit" in text.lower():
+                # Extract a "try again in Xs" hint if present and pre-sleep.
+                m = re.search(r"try again in ([\d.]+)\s*s", text)
+                wait_s = min(float(m.group(1)) + 0.5, 20.0) if m else 8.0
+                self.log(run_id,
+                         f"groq 429 · pre-sleeping {wait_s:.1f}s before bubbling",
+                         level="warn")
+                await asyncio.sleep(wait_s)
+            raise
         content = response.choices[0].message.content or "{}"
         parsed = self._parse_json_or_raise(run_id, content)
         self._log_usage(run_id, response)

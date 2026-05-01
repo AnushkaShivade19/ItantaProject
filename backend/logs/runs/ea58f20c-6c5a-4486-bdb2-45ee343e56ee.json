@@ -1,0 +1,103 @@
+{
+  "id": "ea58f20c-6c5a-4486-bdb2-45ee343e56ee",
+  "spec_input": "Build simplecalc, a tiny pure-Python calculator library. Module path: simplecalc/operations.py. Provide: add(a,b)->int, subtract(a,b)->int, multiply(a,b)->int, divide(a,b)->float (raise ValueError on b==0). Acceptance: all functions are pure (no side effects); divide(_,0) raises ValueError.",
+  "status": "failed",
+  "phase": "phase-2-orchestrator",
+  "created_at": "2026-05-01T07:52:28.992443+00:00",
+  "updated_at": "2026-05-01T07:53:17.956242+00:00",
+  "specification": {
+    "project_name": "simplecalc",
+    "description": "A tiny pure-Python calculator library for basic arithmetic operations.",
+    "features": [
+      "addition",
+      "subtraction",
+      "multiplication",
+      "division"
+    ],
+    "constraints": [
+      "pure functions",
+      "no side effects"
+    ],
+    "tech_stack": {
+      "backend": "pure-Python",
+      "database": null,
+      "other": []
+    },
+    "acceptance_criteria": [
+      "all functions are pure",
+      "divide(_,0) raises ValueError"
+    ],
+    "mode": "spec",
+    "clarifications": []
+  },
+  "architecture": null,
+  "tasks": [],
+  "test_results": null,
+  "summary_report": null,
+  "output_dir": null,
+  "agents": {
+    "intake": {
+      "name": "intake",
+      "status": "success",
+      "started_at": "2026-05-01T07:52:29.138083+00:00",
+      "ended_at": "2026-05-01T07:52:29.674274+00:00",
+      "attempts": 1,
+      "last_error": null,
+      "output_summary": "spec: simplecalc"
+    },
+    "architect": {
+      "name": "architect",
+      "status": "error",
+      "started_at": "2026-05-01T07:52:29.675471+00:00",
+      "ended_at": "2026-05-01T07:53:17.955746+00:00",
+      "attempts": 3,
+      "last_error": "Error code: 429 - {'error': {'message': 'Rate limit reached for model `llama-3.3-70b-versatile` in organization `org_01kprj6vfyf8m9q0ftdcvb47n7` service tier `on_demand` on tokens per day (TPD): Limit 100000, Used 97748, Requested 4742. Please try again in 35m51.359999999s. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}",
+      "output_summary": null
+    },
+    "planner": {
+      "name": "planner",
+      "status": "idle",
+      "started_at": null,
+      "ended_at": null,
+      "attempts": 0,
+      "last_error": null,
+      "output_summary": null
+    },
+    "qa": {
+      "name": "qa",
+      "status": "idle",
+      "started_at": null,
+      "ended_at": null,
+      "attempts": 0,
+      "last_error": null,
+      "output_summary": null
+    },
+    "coder": {
+      "name": "coder",
+      "status": "idle",
+      "started_at": null,
+      "ended_at": null,
+      "attempts": 0,
+      "last_error": null,
+      "output_summary": null
+    },
+    "validator": {
+      "name": "validator",
+      "status": "idle",
+      "started_at": null,
+      "ended_at": null,
+      "attempts": 0,
+      "last_error": null,
+      "output_summary": null
+    },
+    "recovery": {
+      "name": "recovery",
+      "status": "idle",
+      "started_at": null,
+      "ended_at": null,
+      "attempts": 0,
+      "last_error": null,
+      "output_summary": null
+    }
+  }
+}

@@ -7,7 +7,7 @@
 
 framework:
   name: "Agentic AI Software Development Framework"
-  version: "0.5.0"
+  version: "0.6.0"
   mode: "tdd-first"    # tdd-first | code-first
 
 # ------------------------------------------------------------------
@@ -31,11 +31,11 @@ agents:
     temperature: 0.3
     description: "Parses user spec & asks clarifying questions."
   architect:
-    model: "llama-3.3-70b-versatile"
+    model: "llama-3.1-8b-instant"
     temperature: 0.2
     description: "Designs the system: folders, APIs, DB schema."
   planner:
-    model: "llama-3.3-70b-versatile"
+    model: "llama-3.1-8b-instant"
     temperature: 0.2
     description: "Breaks the architecture into atomic, testable tasks."
   qa:
@@ -59,10 +59,10 @@ agents:
 # Retry policy — applied by the orchestrator on agent failure.
 # ------------------------------------------------------------------
 retry:
-  max_attempts: 3
-  backoff_seconds: 2
+  max_attempts: 5
+  backoff_seconds: 30      # Groq free-tier 70b TPM resets every minute
   escalate_after: 3       # hand off to Recovery agent after N fails
-  hard_fail_after: 5      # abort run entirely after N total retries
+  hard_fail_after: 8      # abort run entirely after N total retries
 
 # ------------------------------------------------------------------
 # Guardrails — enforced by the Validator agent.
