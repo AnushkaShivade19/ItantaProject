@@ -11,6 +11,7 @@ import logging
 import os
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 import yaml
 from dotenv import load_dotenv
@@ -22,29 +23,29 @@ from starlette.middleware.cors import CORSMiddleware
 from core.orchestrator import Orchestrator
 from core.state_manager import state_manager
 
-ROOT_DIR = Path(__file__).parent
+ROOT_DIR: Path = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
 
 # ---- Mongo ----
-mongo_url = os.environ["MONGO_URL"]
-client = AsyncIOMotorClient(mongo_url)
+mongo_url: str = os.environ["MONGO_URL"]
+client: AsyncIOMotorClient = AsyncIOMotorClient(mongo_url)
 db = client[os.environ["DB_NAME"]]
 
 # ---- App + router ----
-app = FastAPI(title="Agentic AI Framework", version="0.1.0")
-api_router = APIRouter(prefix="/api")
+app: FastAPI = FastAPI(title="Agentic AI Framework", version="0.1.0")
+api_router: APIRouter = APIRouter(prefix="/api")
 
 # ---- Config loader (reads at startup; reloadable via endpoint) ----
-CONFIG_PATH = ROOT_DIR / "config" / "config.yaml"
+CONFIG_PATH: Path = ROOT_DIR / "config" / "config.yaml"
 
 
-def _load_config() -> dict:
+def _load_config() -> dict[str, Any]:
     with CONFIG_PATH.open("r", encoding="utf-8") as fh:
         return yaml.safe_load(fh)
 
 
-_config_cache: dict = _load_config()
-orchestrator = Orchestrator(state=state_manager)
+_config_cache: dict[str, Any] = _load_config()
+orchestrator: Orchestrator = Orchestrator(state=state_manager)
 
 
 # ================= Models =================
@@ -78,14 +79,27 @@ class AgentSpec(BaseModel):
     description: str
 
 
+class ReloadResponse(BaseModel):
+    reloaded: bool
+    framework: dict[str, Any]
+
+
+class RootResponse(BaseModel):
+    message: str
+
+
+class RunsResponse(BaseModel):
+    runs: list[dict[str, Any]]
+
+
 # ================= Endpoints =================
-@api_router.get("/")
-async def root():
-    return {"message": "Agentic AI Framework — Phase 1 scaffold online."}
+@api_router.get("/", response_model=RootResponse)
+async def root() -> RootResponse:
+    return RootResponse(message="Agentic AI Framework — Phase 1 scaffold online.")
 
 
 @api_router.get("/health", response_model=HealthResponse)
-async def health():
+async def health() -> HealthResponse:
     return HealthResponse(
         status="ok",
         framework=_config_cache["framework"]["name"],
@@ -97,55 +111,55 @@ async def health():
 
 
 @api_router.get("/config")
-async def get_config():
+async def get_config() -> dict[str, Any]:
     """Return the sanitised config (secrets already live in env)."""
     return _config_cache
 
 
-@api_router.post("/config/reload")
-async def reload_config():
+@api_router.post("/config/reload", response_model=ReloadResponse)
+async def reload_config() -> ReloadResponse:
     global _config_cache  # noqa: PLW0603
     _config_cache = _load_config()
-    return {"reloaded": True, "framework": _config_cache["framework"]}
+    return ReloadResponse(reloaded=True, framework=_config_cache["framework"])
 
 
 @api_router.get("/pipeline", response_model=list[PipelineNode])
-async def get_pipeline():
+async def get_pipeline() -> list[PipelineNode]:
     return [PipelineNode(**node) for node in orchestrator.describe_pipeline()]
 
 
 @api_router.get("/agents", response_model=list[AgentSpec])
-async def list_agents():
+async def list_agents() -> list[AgentSpec]:
     return [AgentSpec(name=name, **spec) for name, spec in _config_cache["agents"].items()]
 
 
-@api_router.get("/phases")
-async def list_phases():
+@api_router.get("/phases", response_model=list[PhaseInfo])
+async def list_phases() -> list[PhaseInfo]:
     """Static metadata about the 8 implementation phases (for dashboard)."""
     return [
         PhaseInfo(id="phase-1-setup", title="Project Setup",
-                  status="complete", description="Folders, deps, config, CLI, dashboard shell").model_dump(),
+                  status="complete", description="Folders, deps, config, CLI, dashboard shell"),
         PhaseInfo(id="phase-2-orchestrator", title="Core Orchestrator",
-                  status="current", description="State manager + workflow wiring + logging").model_dump(),
+                  status="current", description="State manager + workflow wiring + logging"),
         PhaseInfo(id="phase-3-intake", title="Intake Agent",
-                  status="pending", description="Clarifying questions, structured spec JSON").model_dump(),
+                  status="pending", description="Clarifying questions, structured spec JSON"),
         PhaseInfo(id="phase-4-architect-planner", title="Architect + Planner",
-                  status="pending", description="System design + atomic tasks").model_dump(),
+                  status="pending", description="System design + atomic tasks"),
         PhaseInfo(id="phase-5-qa", title="QA Agent (TDD)",
-                  status="pending", description="Failing pytest cases first").model_dump(),
+                  status="pending", description="Failing pytest cases first"),
         PhaseInfo(id="phase-6-coder", title="Coder Agent",
-                  status="pending", description="Implementation to pass tests").model_dump(),
+                  status="pending", description="Implementation to pass tests"),
         PhaseInfo(id="phase-7-validator-recovery", title="Validator + Recovery",
-                  status="pending", description="Run tests, lint, retry with feedback").model_dump(),
+                  status="pending", description="Run tests, lint, retry with feedback"),
         PhaseInfo(id="phase-8-e2e", title="End-to-End Execution",
-                  status="pending", description="Full pipeline demo + summary report").model_dump(),
+                  status="pending", description="Full pipeline demo + summary report"),
     ]
 
 
-@api_router.get("/runs")
-async def list_runs():
+@api_router.get("/runs", response_model=RunsResponse)
+async def list_runs() -> RunsResponse:
     """Empty until Phase 3. Shape is stable so frontend can render now."""
-    return {"runs": [r.model_dump() for r in state_manager.list()]}
+    return RunsResponse(runs=[r.model_dump() for r in state_manager.list()])
 
 
 # ---- wire router + CORS ----
@@ -160,9 +174,9 @@ app.add_middleware(
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 @app.on_event("shutdown")
-async def shutdown_db_client():
+async def shutdown_db_client() -> None:
     client.close()

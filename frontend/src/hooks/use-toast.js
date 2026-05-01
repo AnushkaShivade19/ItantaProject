@@ -143,7 +143,8 @@ function useToast() {
         listeners.splice(index, 1)
       }
     };
-  }, [state])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return {
     ...state,

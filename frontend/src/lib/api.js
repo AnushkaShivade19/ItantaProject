@@ -1,4 +1,5 @@
 import axios from "axios";
+import { API_TIMEOUT_MS } from "./constants";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
@@ -6,7 +7,7 @@ export const API = `${BACKEND_URL}/api`;
 export const api = axios.create({
   baseURL: API,
   headers: { "Content-Type": "application/json" },
-  timeout: 20000,
+  timeout: API_TIMEOUT_MS,
 });
 
 export const fetchHealth = () => api.get("/health").then((r) => r.data);

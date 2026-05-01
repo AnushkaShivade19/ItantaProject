@@ -9,8 +9,9 @@ import {
   Lifebuoy,
   CaretRight,
 } from "@phosphor-icons/react";
+import { AGENT_NODE_MIN_WIDTH_PX, agentColor } from "../lib/constants";
 
-const iconFor = {
+const AGENT_ICON = {
   intake: GitBranch,
   architect: Cube,
   planner: ListChecks,
@@ -20,92 +21,92 @@ const iconFor = {
   recovery: Lifebuoy,
 };
 
+const resolveIcon = (name) => AGENT_ICON[name] || Cube;
+const iconWeight = (status) => (status === "running" ? "fill" : "regular");
+const stepLabel = (i) => `0${i + 1}`;
+
+function AgentCardHeader({ Icon, status, index }) {
+  return (
+    <div className="flex items-center justify-between">
+      <Icon size={18} weight={iconWeight(status)} color={agentColor(status)} />
+      <span className="text-[10px] font-mono uppercase tracking-wider text-muted-ink">
+        {stepLabel(index)}
+      </span>
+    </div>
+  );
+}
+
+function AgentCardStatus({ status }) {
+  return (
+    <div className="flex items-center gap-1.5 mt-1">
+      <span
+        className="w-1.5 h-1.5 rounded-full"
+        style={{ background: agentColor(status) }}
+      />
+      <span className="text-[10px] font-mono uppercase tracking-wider text-muted-ink">
+        {status}
+      </span>
+    </div>
+  );
+}
+
+function AgentCard({ node, index, status }) {
+  const Icon = resolveIcon(node.name);
+  return (
+    <div
+      data-testid={`agent-node-${node.name}`}
+      data-status={status}
+      className="agent-node flex flex-col gap-2 px-4 py-3 rounded-sm fade-in"
+      style={{
+        minWidth: AGENT_NODE_MIN_WIDTH_PX,
+        animationDelay: `${index * 60}ms`,
+      }}
+    >
+      <AgentCardHeader Icon={Icon} status={status} index={index} />
+      <div className="font-heading text-[13px] font-medium">{node.label}</div>
+      <div className="text-[11px] text-secondary-ink leading-snug">{node.desc}</div>
+      <AgentCardStatus status={status} />
+    </div>
+  );
+}
+
+function PipelineConnector({ active }) {
+  return (
+    <div className="flex items-center px-1">
+      <div className="pipeline-connector w-6 md:w-8" data-active={active} />
+      <CaretRight size={12} color="var(--text-muted)" className="-ml-1" />
+    </div>
+  );
+}
+
+function PipelineHeader({ count }) {
+  return (
+    <div className="flex items-center justify-between mb-5">
+      <div>
+        <div className="overline mb-1">pipeline</div>
+        <h2 className="font-heading text-xl tracking-tight font-medium">
+          Agent Execution Graph
+        </h2>
+      </div>
+      <span className="text-xs font-mono text-muted-ink">
+        TDD-first · {count} agents
+      </span>
+    </div>
+  );
+}
+
 export default function AgentPipeline({ pipeline = [], statuses = {} }) {
   return (
-    <section
-      data-testid="agent-pipeline"
-      className="surface p-5 md:p-6 rounded-sm"
-    >
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <div className="overline mb-1">pipeline</div>
-          <h2 className="font-heading text-xl tracking-tight font-medium">
-            Agent Execution Graph
-          </h2>
-        </div>
-        <span className="text-xs font-mono text-muted-ink">
-          TDD-first · {pipeline.length} agents
-        </span>
-      </div>
-
+    <section data-testid="agent-pipeline" className="surface p-5 md:p-6 rounded-sm">
+      <PipelineHeader count={pipeline.length} />
       <div className="flex items-stretch overflow-x-auto pb-2">
         {pipeline.map((node, i) => {
-          const Icon = iconFor[node.name] || Cube;
           const status = statuses[node.name] || "idle";
+          const isLast = i === pipeline.length - 1;
           return (
             <React.Fragment key={node.name}>
-              <div
-                data-testid={`agent-node-${node.name}`}
-                data-status={status}
-                className="agent-node flex flex-col gap-2 px-4 py-3 min-w-[160px] rounded-sm fade-in"
-                style={{ animationDelay: `${i * 60}ms` }}
-              >
-                <div className="flex items-center justify-between">
-                  <Icon
-                    size={18}
-                    weight={status === "running" ? "fill" : "regular"}
-                    color={
-                      status === "running"
-                        ? "var(--state-running)"
-                        : status === "success"
-                        ? "var(--state-success)"
-                        : status === "error"
-                        ? "var(--state-error)"
-                        : "var(--text-secondary)"
-                    }
-                  />
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-muted-ink">
-                    0{i + 1}
-                  </span>
-                </div>
-                <div className="font-heading text-[13px] font-medium">
-                  {node.label}
-                </div>
-                <div className="text-[11px] text-secondary-ink leading-snug">
-                  {node.desc}
-                </div>
-                <div className="flex items-center gap-1.5 mt-1">
-                  <span
-                    className="w-1.5 h-1.5 rounded-full"
-                    style={{
-                      background:
-                        status === "running"
-                          ? "var(--state-running)"
-                          : status === "success"
-                          ? "var(--state-success)"
-                          : status === "error"
-                          ? "var(--state-error)"
-                          : "var(--text-muted)",
-                    }}
-                  />
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-muted-ink">
-                    {status}
-                  </span>
-                </div>
-              </div>
-              {i < pipeline.length - 1 && (
-                <div className="flex items-center px-1">
-                  <div
-                    className="pipeline-connector w-6 md:w-8"
-                    data-active={statuses[node.name] === "running"}
-                  />
-                  <CaretRight
-                    size={12}
-                    color="var(--text-muted)"
-                    className="-ml-1"
-                  />
-                </div>
-              )}
+              <AgentCard node={node} index={i} status={status} />
+              {!isLast && <PipelineConnector active={status === "running"} />}
             </React.Fragment>
           );
         })}

@@ -1,8 +1,48 @@
 import React from "react";
-import { Terminal, GithubLogo, Circle } from "@phosphor-icons/react";
+import { Terminal, GithubLogo } from "@phosphor-icons/react";
+import StatusPill from "./StatusPill";
+import { HEADER_ICON_SIZE } from "../lib/constants";
+
+function Brand() {
+  return (
+    <div className="flex items-center gap-3">
+      <div
+        className="w-7 h-7 grid place-items-center"
+        style={{ background: "var(--brand)", color: "var(--brand-fg)" }}
+      >
+        <Terminal size={HEADER_ICON_SIZE} weight="bold" />
+      </div>
+      <div className="flex items-baseline gap-3">
+        <span className="font-heading font-medium tracking-tight text-[15px]">
+          agentic.dev
+        </span>
+        <span className="overline">Software Generation Framework</span>
+      </div>
+    </div>
+  );
+}
+
+function HealthPill({ health }) {
+  const connected = !!health && health.status === "ok";
+  const color = connected ? "var(--state-success)" : "var(--state-error)";
+  const value = connected ? `v${health.version}` : "offline";
+  return <StatusPill value={value} color={color} testId="health-pill" />;
+}
+
+function GroqPill({ configured }) {
+  const color = configured ? "var(--state-success)" : "var(--state-warning)";
+  const value = configured ? "configured" : "unset";
+  return (
+    <StatusPill
+      label="GROQ"
+      value={value}
+      color={color}
+      testId="groq-status-dot"
+    />
+  );
+}
 
 export default function Header({ health }) {
-  const connected = !!health && health.status === "ok";
   return (
     <header
       data-testid="app-header"
@@ -10,48 +50,10 @@ export default function Header({ health }) {
       style={{ borderColor: "var(--border)" }}
     >
       <div className="flex items-center justify-between px-6 h-14">
-        <div className="flex items-center gap-3">
-          <div
-            className="w-7 h-7 grid place-items-center"
-            style={{ background: "var(--brand)", color: "var(--brand-fg)" }}
-          >
-            <Terminal size={16} weight="bold" />
-          </div>
-          <div className="flex items-baseline gap-3">
-            <span className="font-heading font-medium tracking-tight text-[15px]">
-              agentic.dev
-            </span>
-            <span className="overline">Software Generation Framework</span>
-          </div>
-        </div>
-
+        <Brand />
         <div className="flex items-center gap-5">
-          <div className="flex items-center gap-2 text-xs font-mono">
-            <Circle
-              size={8}
-              weight="fill"
-              color={connected ? "var(--state-success)" : "var(--state-error)"}
-            />
-            <span className="text-secondary-ink">
-              {connected ? `v${health.version}` : "offline"}
-            </span>
-          </div>
-          <div className="flex items-center gap-2 text-xs font-mono">
-            <span className="text-muted-ink">GROQ</span>
-            <Circle
-              size={8}
-              weight="fill"
-              color={
-                health?.groq_key_configured
-                  ? "var(--state-success)"
-                  : "var(--state-warning)"
-              }
-              data-testid="groq-status-dot"
-            />
-            <span className="text-secondary-ink">
-              {health?.groq_key_configured ? "configured" : "unset"}
-            </span>
-          </div>
+          <HealthPill health={health} />
+          <GroqPill configured={!!health?.groq_key_configured} />
           <a
             href="https://console.groq.com/keys"
             target="_blank"

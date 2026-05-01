@@ -1,6 +1,9 @@
 import React from "react";
 
-/** Phase-1 log terminal shows scaffold / health events. */
+/**
+ * Stable-key terminal log view.
+ * Each log line must carry a unique `id` (see useAgenticBoot).
+ */
 export default function LogTerminal({ lines = [] }) {
   return (
     <section
@@ -9,13 +12,11 @@ export default function LogTerminal({ lines = [] }) {
     >
       <div className="flex items-center justify-between mb-2">
         <div className="overline">logs · framework.log</div>
-        <span className="text-[10px] font-mono text-muted-ink">
-          tail -f
-        </span>
+        <span className="text-[10px] font-mono text-muted-ink">tail -f</span>
       </div>
       <div className="space-y-[2px]">
-        {lines.map((l, i) => (
-          <div key={i} className={`log-line log-line-${l.level}`}>
+        {lines.map((l) => (
+          <div key={l.id} className={`log-line log-line-${l.level}`}>
             <span className="text-muted-ink mr-2">{l.ts}</span>
             <span className="text-muted-ink mr-2">[{l.agent}]</span>
             <span>{l.msg}</span>
