@@ -1,0 +1,124 @@
+{
+  "theme": "dark",
+  "archetype": "4 - Swiss & High-Contrast (Developer Tool / Terminal Look)",
+  "vibe": "Objective, rigid, technical, high-density, craft-focused",
+  "colors": {
+    "background": "#0A0A0A",
+    "surface": "#121212",
+    "surface_elevated": "#1A1A1A",
+    "border": "#222222",
+    "border_focus": "#333333",
+    "text_primary": "#EDEDED",
+    "text_secondary": "#8A8F98",
+    "text_muted": "#5C5F66",
+    "brand_primary": "#FFFFFF",
+    "brand_primary_foreground": "#000000",
+    "state": {
+      "idle": "#8A8F98",
+      "running": "#FFB000",
+      "success": "#10B981",
+      "error": "#E11D48",
+      "warning": "#F59E0B"
+    }
+  },
+  "typography": {
+    "font_families": {
+      "heading": "Cabinet Grotesk, sans-serif",
+      "body": "IBM Plex Sans, sans-serif",
+      "mono": "JetBrains Mono, monospace"
+    },
+    "scale": {
+      "h1": "text-3xl tracking-tight font-medium",
+      "h2": "text-2xl tracking-tight font-medium",
+      "h3": "text-xl tracking-tight font-medium",
+      "h4": "text-lg tracking-tight font-medium",
+      "body": "text-sm leading-relaxed",
+      "small": "text-xs tracking-wide text-text_secondary",
+      "overline": "text-[10px] uppercase tracking-[0.2em] text-text_muted"
+    }
+  },
+  "spacing": {
+    "padding": {
+      "container": "p-6 md:p-8",
+      "card": "p-4 md:p-6",
+      "dense": "p-2 md:p-3"
+    },
+    "gap": {
+      "layout": "gap-6 md:gap-8",
+      "items": "gap-2 md:gap-4"
+    }
+  },
+  "layout": {
+    "grid_strategy": "The 'Control Room' Grid",
+    "structure": "grid-cols-1 md:grid-cols-12 gap-1px bg-border",
+    "card_radius": "rounded-none md:rounded-sm",
+    "surfaces": {
+      "header": "Sticky Glass: backdrop-blur-xl bg-[#0A0A0A]/80 border-b border-border z-50",
+      "sidebar": "bg-[#0A0A0A] border-r border-border",
+      "main_panel": "bg-[#121212]",
+      "logs_panel": "bg-[#050505] border border-border"
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-brand_primary text-brand_primary_foreground hover:bg-brand_primary/90 font-medium px-4 py-2 rounded-sm transition-transform active:scale-[0.98]",
+      "secondary": "bg-transparent border border-border text-text_primary hover:bg-surface_elevated font-medium px-4 py-2 rounded-sm transition-transform active:scale-[0.98]"
+    },
+    "inputs": {
+      "base": "bg-[#0A0A0A] border border-border rounded-sm px-3 py-2 text-sm text-text_primary focus:outline-none focus:border-text_secondary focus:ring-1 focus:ring-text_secondary transition-all"
+    },
+    "agent_node": {
+      "idle": "border border-border bg-surface text-text_secondary opacity-70",
+      "running": "border border-state-running/50 bg-surface shadow-[inset_0_0_12px_rgba(255,176,0,0.1)] text-text_primary relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-state-running/10 before:to-transparent before:-translate-x-full before:animate-[shimmer_2s_infinite]",
+      "success": "border border-state-success/30 bg-surface text-text_primary",
+      "error": "border border-state-error/50 bg-surface text-state-error"
+    },
+    "log_terminal": {
+      "container": "font-mono text-xs overflow-y-auto p-4 bg-[#050505] rounded-sm border border-border",
+      "entry_info": "text-text_secondary",
+      "entry_success": "text-state-success",
+      "entry_error": "text-state-error",
+      "entry_running": "text-state-running animate-pulse"
+    },
+    "project_explorer": {
+      "item": "flex items-center gap-2 px-2 py-1.5 text-sm hover:bg-surface_elevated rounded-sm cursor-pointer text-text_secondary hover:text-text_primary transition-colors"
+    },
+    "task_item": {
+      "container": "flex items-start gap-3 p-3 border-b border-border/50 last:border-0",
+      "checkbox": "mt-0.5 rounded-sm border border-text_muted bg-transparent data-[state=checked]:bg-state-success data-[state=checked]:border-state-success data-[state=checked]:text-background"
+    }
+  },
+  "motion": {
+    "hover": "transition-colors duration-200 ease-in-out",
+    "click": "transition-transform duration-100 ease-in-out active:scale-[0.98]",
+    "list_stagger": "animate-in fade-in slide-in-from-bottom-2 duration-300",
+    "running_pulse": "animate-pulse duration-1000"
+  },
+  "icons_and_media": {
+    "icon_library": "@phosphor-icons/react",
+    "library_install_command": "yarn add @phosphor-icons/react",
+    "icon_style": "weight='regular' for idle/secondary, weight='fill' for active/primary",
+    "images": [
+      {
+        "category": "texture_overlay",
+        "url": "https://images.pexels.com/photos/33968585/pexels-photo-33968585.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Black and white geometric grid pattern. Use as a very subtle background mask (opacity-5) in the header or hero section to break the digital flatness."
+      }
+    ]
+  },
+  "accessibility_and_testing": {
+    "contrast": "Ensure all text meets APCA guidelines. Use text_secondary (#8A8F98) only for non-critical information.",
+    "focus": "All interactive elements MUST have focus states: focus-visible:ring-1 focus-visible:ring-text_primary",
+    "testing_attributes": "MUST include data-testid on all interactive elements. E.g., data-testid='agent-node-coder', data-testid='download-zip-button', data-testid='intake-submit-button'"
+  },
+  "instructions_to_main_agent": [
+    "Strictly adhere to the dark theme colors provided. Do not invent gradients or new colors.",
+    "Use Phosphor Icons for all UI iconography.",
+    "Implement the layout using a 'Control Room' grid strategy. Dashboards should be dense, maximizing viewport usage. Use flex-1 and h-full to avoid jagged bottom edges.",
+    "For the Agent Pipeline Visualizer, map the 7 agents (Intake, Architect, Planner, QA, Coder, Validator, Recovery) sequentially. Use the `agent_node` component classes based on their state.",
+    "The Log Terminal MUST use JetBrains Mono (or fallback to monospace) and feel like a real terminal.",
+    "Avoid Shadcn 'Card' wrapper if it introduces too much padding or shadow. Prefer raw divs with 'bg-surface border border-border rounded-sm p-4'.",
+    "Make the Project Explorer a tree view structure.",
+    "Ensure the layout is highly technical and mimics tools like Linear or LangSmith (1px solid borders, no soft shadows, strict monochrome with bright functional accents)."
+  ]
+}
