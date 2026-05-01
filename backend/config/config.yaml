@@ -1,0 +1,88 @@
+# ================================================================
+# Agentic AI Software Development Framework — Configuration
+# ================================================================
+# All runtime settings. Environment variables still take precedence
+# for secrets (see backend/.env -> GROQ_API_KEY).
+# ================================================================
+
+framework:
+  name: "Agentic AI Software Development Framework"
+  version: "0.1.0"
+  mode: "tdd-first"    # tdd-first | code-first
+
+# ------------------------------------------------------------------
+# LLM settings — Groq is the primary provider. Each agent can
+# override the default with its own model.
+# ------------------------------------------------------------------
+llm:
+  provider: "groq"
+  default_model: "llama-3.3-70b-versatile"
+  fast_model: "llama-3.1-8b-instant"
+  temperature: 0.2
+  max_tokens: 4096
+  timeout_seconds: 90
+  json_mode_supported: true
+
+# Per-agent model assignments. Keep powerful models for reasoning,
+# fast models for ceremonial / structured tasks.
+agents:
+  intake:
+    model: "llama-3.1-8b-instant"
+    temperature: 0.3
+    description: "Parses user spec & asks clarifying questions."
+  architect:
+    model: "llama-3.3-70b-versatile"
+    temperature: 0.2
+    description: "Designs the system: folders, APIs, DB schema."
+  planner:
+    model: "llama-3.3-70b-versatile"
+    temperature: 0.2
+    description: "Breaks the architecture into atomic, testable tasks."
+  qa:
+    model: "llama-3.3-70b-versatile"
+    temperature: 0.1
+    description: "Writes FAILING pytest tests first (TDD)."
+  coder:
+    model: "llama-3.3-70b-versatile"
+    temperature: 0.2
+    description: "Writes code that makes the QA tests pass."
+  validator:
+    model: "llama-3.1-8b-instant"
+    temperature: 0.0
+    description: "Runs pytest + lint and reports results."
+  recovery:
+    model: "llama-3.3-70b-versatile"
+    temperature: 0.3
+    description: "Analyses failures and proposes fixes."
+
+# ------------------------------------------------------------------
+# Retry policy — applied by the orchestrator on agent failure.
+# ------------------------------------------------------------------
+retry:
+  max_attempts: 3
+  backoff_seconds: 2
+  escalate_after: 3       # hand off to Recovery agent after N fails
+  hard_fail_after: 5      # abort run entirely after N total retries
+
+# ------------------------------------------------------------------
+# Guardrails — enforced by the Validator agent.
+# ------------------------------------------------------------------
+guardrails:
+  forbid_network_calls_in_tests: true
+  require_type_hints: false
+  max_file_bytes: 65536
+  max_tasks_per_project: 40
+  allowed_languages:
+    - python
+    - javascript
+    - typescript
+    - html
+    - css
+
+# ------------------------------------------------------------------
+# Paths (relative to backend/)
+# ------------------------------------------------------------------
+paths:
+  logs_dir: "logs"
+  output_projects_dir: "output_projects"
+  config_dir: "config"

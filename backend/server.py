@@ -1,88 +1,167 @@
-from fastapi import FastAPI, APIRouter
-from dotenv import load_dotenv
-from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
-import os
-import logging
-from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict
-from typing import List
-import uuid
-from datetime import datetime, timezone
+"""
+FastAPI backend — exposes the Agentic Framework over HTTP.
 
+Phase 1: surface configuration, pipeline metadata, and run list so
+the React dashboard can render. Later phases add POST /runs, SSE log
+streaming, and ZIP downloads.
+"""
+from __future__ import annotations
+
+import logging
+import os
+from datetime import datetime, timezone
+from pathlib import Path
+
+import yaml
+from dotenv import load_dotenv
+from fastapi import APIRouter, FastAPI
+from motor.motor_asyncio import AsyncIOMotorClient
+from pydantic import BaseModel, ConfigDict
+from starlette.middleware.cors import CORSMiddleware
+
+from core.orchestrator import Orchestrator
+from core.state_manager import state_manager
 
 ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
+load_dotenv(ROOT_DIR / ".env")
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
+# ---- Mongo ----
+mongo_url = os.environ["MONGO_URL"]
 client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+db = client[os.environ["DB_NAME"]]
 
-# Create the main app without a prefix
-app = FastAPI()
-
-# Create a router with the /api prefix
+# ---- App + router ----
+app = FastAPI(title="Agentic AI Framework", version="0.1.0")
 api_router = APIRouter(prefix="/api")
 
+# ---- Config loader (reads at startup; reloadable via endpoint) ----
+CONFIG_PATH = ROOT_DIR / "config" / "config.yaml"
 
-# Define Models
-class StatusCheck(BaseModel):
-    model_config = ConfigDict(extra="ignore")  # Ignore MongoDB's _id field
-    
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    client_name: str
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-class StatusCheckCreate(BaseModel):
-    client_name: str
+def _load_config() -> dict:
+    with CONFIG_PATH.open("r", encoding="utf-8") as fh:
+        return yaml.safe_load(fh)
 
-# Add your routes to the router instead of directly to app
+
+_config_cache: dict = _load_config()
+orchestrator = Orchestrator(state=state_manager)
+
+
+# ================= Models =================
+class HealthResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    status: str
+    framework: str
+    version: str
+    phase: str
+    groq_key_configured: bool
+    timestamp: str
+
+
+class PhaseInfo(BaseModel):
+    id: str
+    title: str
+    status: str  # complete | current | pending
+    description: str
+
+
+class PipelineNode(BaseModel):
+    name: str
+    label: str
+    desc: str
+
+
+class AgentSpec(BaseModel):
+    name: str
+    model: str
+    temperature: float
+    description: str
+
+
+# ================= Endpoints =================
 @api_router.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": "Agentic AI Framework — Phase 1 scaffold online."}
 
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.model_dump()
-    status_obj = StatusCheck(**status_dict)
-    
-    # Convert to dict and serialize datetime to ISO string for MongoDB
-    doc = status_obj.model_dump()
-    doc['timestamp'] = doc['timestamp'].isoformat()
-    
-    _ = await db.status_checks.insert_one(doc)
-    return status_obj
 
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    # Exclude MongoDB's _id field from the query results
-    status_checks = await db.status_checks.find({}, {"_id": 0}).to_list(1000)
-    
-    # Convert ISO string timestamps back to datetime objects
-    for check in status_checks:
-        if isinstance(check['timestamp'], str):
-            check['timestamp'] = datetime.fromisoformat(check['timestamp'])
-    
-    return status_checks
+@api_router.get("/health", response_model=HealthResponse)
+async def health():
+    return HealthResponse(
+        status="ok",
+        framework=_config_cache["framework"]["name"],
+        version=_config_cache["framework"]["version"],
+        phase="phase-1-setup",
+        groq_key_configured=bool(os.environ.get("GROQ_API_KEY")),
+        timestamp=datetime.now(timezone.utc).isoformat(),
+    )
 
-# Include the router in the main app
+
+@api_router.get("/config")
+async def get_config():
+    """Return the sanitised config (secrets already live in env)."""
+    return _config_cache
+
+
+@api_router.post("/config/reload")
+async def reload_config():
+    global _config_cache  # noqa: PLW0603
+    _config_cache = _load_config()
+    return {"reloaded": True, "framework": _config_cache["framework"]}
+
+
+@api_router.get("/pipeline", response_model=list[PipelineNode])
+async def get_pipeline():
+    return [PipelineNode(**node) for node in orchestrator.describe_pipeline()]
+
+
+@api_router.get("/agents", response_model=list[AgentSpec])
+async def list_agents():
+    return [AgentSpec(name=name, **spec) for name, spec in _config_cache["agents"].items()]
+
+
+@api_router.get("/phases")
+async def list_phases():
+    """Static metadata about the 8 implementation phases (for dashboard)."""
+    return [
+        PhaseInfo(id="phase-1-setup", title="Project Setup",
+                  status="complete", description="Folders, deps, config, CLI, dashboard shell").model_dump(),
+        PhaseInfo(id="phase-2-orchestrator", title="Core Orchestrator",
+                  status="current", description="State manager + workflow wiring + logging").model_dump(),
+        PhaseInfo(id="phase-3-intake", title="Intake Agent",
+                  status="pending", description="Clarifying questions, structured spec JSON").model_dump(),
+        PhaseInfo(id="phase-4-architect-planner", title="Architect + Planner",
+                  status="pending", description="System design + atomic tasks").model_dump(),
+        PhaseInfo(id="phase-5-qa", title="QA Agent (TDD)",
+                  status="pending", description="Failing pytest cases first").model_dump(),
+        PhaseInfo(id="phase-6-coder", title="Coder Agent",
+                  status="pending", description="Implementation to pass tests").model_dump(),
+        PhaseInfo(id="phase-7-validator-recovery", title="Validator + Recovery",
+                  status="pending", description="Run tests, lint, retry with feedback").model_dump(),
+        PhaseInfo(id="phase-8-e2e", title="End-to-End Execution",
+                  status="pending", description="Full pipeline demo + summary report").model_dump(),
+    ]
+
+
+@api_router.get("/runs")
+async def list_runs():
+    """Empty until Phase 3. Shape is stable so frontend can render now."""
+    return {"runs": [r.model_dump() for r in state_manager.list()]}
+
+
+# ---- wire router + CORS ----
 app.include_router(api_router)
-
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
+    allow_origins=os.environ.get("CORS_ORIGINS", "*").split(","),
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO,
+                    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
+
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
