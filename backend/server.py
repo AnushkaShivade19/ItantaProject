@@ -192,7 +192,7 @@ async def start_run(run_id: str, background_tasks: BackgroundTasks) -> StartRunR
     run = state_manager.get(run_id)
     if run is None:
         raise HTTPException(status_code=404, detail="run not found")
-    if run.status in {RunStatus.running}:
+    if run.status == RunStatus.running:
         raise HTTPException(status_code=409, detail="run already in progress")
     background_tasks.add_task(_execute_run, run_id)
     return StartRunResponse(started=True, run_id=run_id)

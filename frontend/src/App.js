@@ -1,4 +1,4 @@
-import React from "react";
+import { useCallback, useMemo, useState } from "react";
 import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
 import PhaseBanner from "./components/PhaseBanner";
@@ -12,16 +12,28 @@ import { useActiveRun } from "./hooks/useActiveRun";
 import { EVENT_LEVEL_TO_LOG_LEVEL } from "./lib/constants";
 import "./App.css";
 
-const TIME_ONLY = (iso) =>
+const timeOnly = (iso) =>
   iso ? iso.split("T")[1].replace("Z", "").slice(0, 12) : "";
 
 const mapEventToLog = (ev) => ({
   id: `${ev.run_id}-${ev.ts}-${ev.agent}`,
-  ts: TIME_ONLY(ev.ts),
+  ts: timeOnly(ev.ts),
   level: EVENT_LEVEL_TO_LOG_LEVEL[ev.level] || "info",
   agent: ev.agent,
   msg: ev.message,
 });
+
+const isRunBusy = (run) =>
+  run && (run.status === "pending" || run.status === "running");
+
+const agentStatusesFromRun = (run, pipeline) => {
+  const base = Object.fromEntries(pipeline.map((n) => [n.name, "idle"]));
+  if (!run?.agents) return base;
+  for (const [name, agent] of Object.entries(run.agents)) {
+    base[name] = agent.status;
+  }
+  return base;
+};
 
 function ErrorBanner({ error }) {
   if (!error) return null;
@@ -45,37 +57,25 @@ function DashboardFooter({ phaseStatus }) {
   );
 }
 
-const IS_BUSY = (run) =>
-  run && (run.status === "pending" || run.status === "running");
-
-const agentStatusesFromRun = (run, pipeline) => {
-  const base = Object.fromEntries(pipeline.map((n) => [n.name, "idle"]));
-  if (!run?.agents) return base;
-  for (const [name, agent] of Object.entries(run.agents)) {
-    base[name] = agent.status;
-  }
-  return base;
-};
-
 export default function App() {
-  const [nav, setNav] = React.useState("dashboard");
-  const [activeRunId, setActiveRunId] = React.useState(null);
+  const [nav, setNav] = useState("dashboard");
+  const [activeRunId, setActiveRunId] = useState(null);
   const { health, config, pipeline, agents, phases, logs, error } =
     useAgenticBoot();
   const { run: activeRun, events: runEvents, error: runError } =
     useActiveRun(activeRunId);
 
   const statuses = agentStatusesFromRun(activeRun, pipeline);
-  const mergedLogs = React.useMemo(
+  const mergedLogs = useMemo(
     () => [...logs, ...runEvents.map(mapEventToLog)],
     [logs, runEvents]
   );
 
-  const handleRunStarted = React.useCallback((runId) => {
+  const handleRunStarted = useCallback((runId) => {
     setActiveRunId(runId);
-  }, []);
+  }, [setActiveRunId]);
 
-  const busy = IS_BUSY(activeRun);
+  const busy = isRunBusy(activeRun);
   const phaseStatus = activeRun
     ? `run ${activeRun.id.slice(0, 8)} · ${activeRun.status}`
     : "phase-2 · orchestrator ready · awaiting phase-3 intake";

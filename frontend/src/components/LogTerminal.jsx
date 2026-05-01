@@ -1,5 +1,3 @@
-import React from "react";
-
 /**
  * Stable-key terminal log view.
  * Each log line must carry a unique `id` (see useAgenticBoot).

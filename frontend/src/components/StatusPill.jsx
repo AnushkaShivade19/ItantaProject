@@ -1,4 +1,3 @@
-import React from "react";
 import { Circle } from "@phosphor-icons/react";
 import { STATUS_DOT_SIZE_PX } from "../lib/constants";
 

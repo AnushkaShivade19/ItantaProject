@@ -1,4 +1,3 @@
-import React from "react";
 import { CheckCircle, CircleDashed, Spinner } from "@phosphor-icons/react";
 import { phaseColor } from "../lib/constants";
 

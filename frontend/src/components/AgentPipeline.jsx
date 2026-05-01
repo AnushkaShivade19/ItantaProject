@@ -1,4 +1,4 @@
-import React from "react";
+import { Fragment } from "react";
 import {
   GitBranch,
   Cube,
@@ -104,10 +104,10 @@ export default function AgentPipeline({ pipeline = [], statuses = {} }) {
           const status = statuses[node.name] || "idle";
           const isLast = i === pipeline.length - 1;
           return (
-            <React.Fragment key={node.name}>
+            <Fragment key={node.name}>
               <AgentCard node={node} index={i} status={status} />
               {!isLast && <PipelineConnector active={status === "running"} />}
-            </React.Fragment>
+            </Fragment>
           );
         })}
       </div>

@@ -18,11 +18,19 @@ const makeLogEntry = (msg, level, agent) => ({
   msg,
 });
 
+const appendCapped = (prev, entry) => {
+  const next = [...prev, entry];
+  return next.length > MAX_LOG_LINES ? next.slice(-MAX_LOG_LINES) : next;
+};
+
 /**
- * Bootstraps the dashboard: loads health/config/pipeline/agents/phases,
- * maintains a periodic health refresh, and surfaces a live log buffer.
+ * Boots the dashboard: loads static metadata once, then polls health
+ * on a fixed interval. Exposes a capped log buffer with a stable
+ * `addLog` reference.
  *
- * Returns { health, config, pipeline, agents, phases, logs, error, addLog }.
+ * Effect runs exactly once on mount — `addLog` is stable (useCallback
+ * with empty deps) and the interval depends only on a module-level
+ * constant, so no hidden deps to track.
  */
 export function useAgenticBoot() {
   const [health, setHealth] = useState(null);
@@ -34,18 +42,17 @@ export function useAgenticBoot() {
   const [error, setError] = useState(null);
   const mountedRef = useRef(true);
 
+  // Parameters (msg/level/agent) can never be React deps. setLogs and
+  // the module-level helpers are stable. Empty deps is correct here.
   const addLog = useCallback((msg, level = "info", agent = "system") => {
-    setLogs((prev) => {
-      const next = [...prev, makeLogEntry(msg, level, agent)];
-      return next.length > MAX_LOG_LINES ? next.slice(-MAX_LOG_LINES) : next;
-    });
+    setLogs((prev) => appendCapped(prev, makeLogEntry(msg, level, agent)));
   }, []);
 
   useEffect(() => {
     mountedRef.current = true;
     addLog("bootstrapping dashboard ...", "info", "ui");
 
-    (async () => {
+    const runBoot = async () => {
       try {
         const [h, c, p, a, ph] = await Promise.all([
           fetchHealth(),
@@ -62,11 +69,9 @@ export function useAgenticBoot() {
         setPhases(ph);
         addLog(`health=${h.status} v${h.version}`, "success", "health");
         addLog(
-          `groq key ${
-            h.groq_key_configured
-              ? "configured"
-              : "missing — add to backend/.env"
-          }`,
+          h.groq_key_configured
+            ? "groq key configured"
+            : "groq key missing — add to backend/.env",
           h.groq_key_configured ? "success" : "warn",
           "groq"
         );
@@ -75,29 +80,29 @@ export function useAgenticBoot() {
           "info",
           "orchestrator"
         );
-        addLog(
-          "phase-1 scaffold ready · awaiting phase-2 confirmation",
-          "running",
-          "phase"
-        );
+        addLog("scaffold ready", "running", "phase");
       } catch (e) {
+        if (!mountedRef.current) return;
         setError(String(e));
         addLog(`bootstrap failed: ${e.message}`, "error", "ui");
       }
-    })();
+    };
 
-    const t = setInterval(async () => {
+    runBoot();
+
+    const refreshHealth = async () => {
       try {
         const h = await fetchHealth();
         if (mountedRef.current) setHealth(h);
       } catch (err) {
         console.warn("[health-refresh] failed:", err?.message || err);
       }
-    }, HEALTH_REFRESH_INTERVAL_MS);
+    };
+    const intervalId = setInterval(refreshHealth, HEALTH_REFRESH_INTERVAL_MS);
 
     return () => {
       mountedRef.current = false;
-      clearInterval(t);
+      clearInterval(intervalId);
     };
   }, [addLog]);
 

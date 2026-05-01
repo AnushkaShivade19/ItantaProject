@@ -1,4 +1,3 @@
-import React from "react";
 import { Cpu, Thermometer } from "@phosphor-icons/react";
 
 export default function ConfigPanel({ config, agents }) {

@@ -1,4 +1,3 @@
-import React from "react";
 import { Terminal, GithubLogo } from "@phosphor-icons/react";
 import StatusPill from "./StatusPill";
 import { HEADER_ICON_SIZE } from "../lib/constants";

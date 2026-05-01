@@ -1,4 +1,3 @@
-import React from "react";
 import { Clock, Hash } from "@phosphor-icons/react";
 import { runStatusColor } from "../lib/constants";
 

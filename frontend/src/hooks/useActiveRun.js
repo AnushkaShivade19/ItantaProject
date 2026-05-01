@@ -1,37 +1,43 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { fetchRun } from "../lib/api";
 import { RUN_POLL_INTERVAL_MS } from "../lib/constants";
 
 const TERMINAL_STATES = new Set(["completed", "failed"]);
 
+const isTerminal = (status) => TERMINAL_STATES.has(status);
+
 /**
  * Polls /api/runs/{runId} while the run is active and surfaces the latest
- * RunState + events array. Stops polling once the run is in a terminal state.
+ * RunState + events array. Stops polling once the run reaches a terminal
+ * state (completed | failed).
+ *
+ * The effect depends on `runId` only — `timerRef` is a ref (stable),
+ * and all module-level constants never change at runtime.
  */
 export function useActiveRun(runId) {
   const [run, setRun] = useState(null);
   const [events, setEvents] = useState([]);
   const [error, setError] = useState(null);
   const timerRef = useRef(null);
-  const isMountedRef = useRef(true);
-
-  const clearTimer = useCallback(() => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-  }, []);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    isMountedRef.current = true;
+    mountedRef.current = true;
     setRun(null);
     setEvents([]);
     setError(null);
 
+    const clearTimer = () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+
     if (!runId) {
       clearTimer();
       return () => {
-        isMountedRef.current = false;
+        mountedRef.current = false;
         clearTimer();
       };
     }
@@ -39,18 +45,18 @@ export function useActiveRun(runId) {
     const tick = async () => {
       try {
         const data = await fetchRun(runId);
-        if (!isMountedRef.current) return;
+        if (!mountedRef.current) return;
         setRun(data.run);
         setEvents(data.events || []);
-        if (TERMINAL_STATES.has(data.run?.status)) {
+        if (isTerminal(data.run?.status)) {
           clearTimer();
           return;
         }
       } catch (e) {
-        if (!isMountedRef.current) return;
+        if (!mountedRef.current) return;
         setError(e?.message || String(e));
       }
-      if (isMountedRef.current) {
+      if (mountedRef.current) {
         timerRef.current = setTimeout(tick, RUN_POLL_INTERVAL_MS);
       }
     };
@@ -58,10 +64,10 @@ export function useActiveRun(runId) {
     tick();
 
     return () => {
-      isMountedRef.current = false;
+      mountedRef.current = false;
       clearTimer();
     };
-  }, [runId, clearTimer]);
+  }, [runId]);
 
   return { run, events, error };
 }
