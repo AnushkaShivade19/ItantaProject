@@ -86,15 +86,33 @@ function EditorError({ message }) {
   );
 }
 
-/**
- * Spec editor — creates a new run and kicks off the orchestrator.
- */
-export default function SpecEditor({ onRunStarted, busy }) {
+function SamplePillRow({ onUse, disabled }) {
+  return (
+    <div className="mt-2 flex flex-wrap gap-1.5">
+      {SAMPLE_SPECS.map((s) => (
+        <SamplePill key={s} text={s} onUse={onUse} disabled={disabled} />
+      ))}
+    </div>
+  );
+}
+
+function SpecTextarea({ value, onChange, disabled }) {
+  return (
+    <textarea
+      data-testid="spec-input"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      disabled={disabled}
+      placeholder="e.g. Build a FastAPI + React todo app with MongoDB…"
+      className="input-base mt-4 h-28 resize-none"
+    />
+  );
+}
+
+function useSpecEditor(busy, onRunStarted) {
   const [spec, setSpec] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
-
-  const isLocked = submitting || busy;
 
   const launch = async () => {
     if (!canLaunch(spec, submitting, busy)) return;
@@ -111,32 +129,28 @@ export default function SpecEditor({ onRunStarted, busy }) {
     }
   };
 
+  return { spec, setSpec, submitting, error, launch };
+}
+
+export default function SpecEditor({ onRunStarted, busy }) {
+  const { spec, setSpec, submitting, error, launch } = useSpecEditor(
+    busy,
+    onRunStarted
+  );
+  const isLocked = submitting || busy;
+  const enabled = canLaunch(spec, submitting, busy);
+
   return (
     <section className="surface p-5 rounded-sm" data-testid="spec-editor">
       <EditorHeader />
       <EditorHelp />
-
-      <textarea
-        data-testid="spec-input"
-        value={spec}
-        onChange={(e) => setSpec(e.target.value)}
-        disabled={isLocked}
-        placeholder="e.g. Build a FastAPI + React todo app with MongoDB…"
-        className="input-base mt-4 h-28 resize-none"
-      />
-
-      <div className="mt-2 flex flex-wrap gap-1.5">
-        {SAMPLE_SPECS.map((s) => (
-          <SamplePill key={s} text={s} onUse={setSpec} disabled={isLocked} />
-        ))}
-      </div>
-
+      <SpecTextarea value={spec} onChange={setSpec} disabled={isLocked} />
+      <SamplePillRow onUse={setSpec} disabled={isLocked} />
       <EditorError message={error} />
-
       <button
         type="button"
         onClick={launch}
-        disabled={!canLaunch(spec, submitting, busy)}
+        disabled={!enabled}
         className="btn-primary mt-3 w-full justify-center"
         data-testid="launch-pipeline-btn"
       >

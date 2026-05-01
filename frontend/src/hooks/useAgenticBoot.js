@@ -74,7 +74,9 @@ const startHealthPoller = (mountedRef, setHealth) => {
       const h = await fetchHealth();
       if (mountedRef.current) setHealth(h);
     } catch (err) {
-      console.warn("[health-refresh] failed:", err?.message || err);
+      if (process.env.NODE_ENV !== "production") {
+        console.warn("[health-refresh] failed:", err?.message || err);
+      }
     }
   };
   return setInterval(refresh, HEALTH_REFRESH_INTERVAL_MS);
