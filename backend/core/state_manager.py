@@ -78,6 +78,9 @@ class Task(BaseModel):
     title: str
     detail: str = ""
     status: TaskStatus = TaskStatus.pending
+    depends_on: list[str] = Field(default_factory=list)
+    files: list[str] = Field(default_factory=list)
+    test_focus: str = ""
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
@@ -192,8 +195,8 @@ class StateManager:
         self._touch(run_id)
         event(run_id, "info", "state", "architecture stored")
 
-    def add_task(self, run_id: str, title: str, detail: str = "") -> Task:
-        task = Task(title=title, detail=detail)
+    def add_task(self, run_id: str, title: str, detail: str = "", **extras: Any) -> Task:
+        task = Task(title=title, detail=detail, **extras)
         self._runs[run_id].tasks.append(task)
         self._touch(run_id)
         event(run_id, "info", "state", f"task added · {title}", task_id=task.id)

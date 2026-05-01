@@ -1,34 +1,23 @@
 # Agentic AI Software Development Framework — PRD
 
 ## Original Problem Statement
-
-Build a complete "Agentic AI Software Development Framework" step-by-step.
-The system must take a natural-language project specification and autonomously
-generate a full working software project using multiple AI agents.
-
-Core requirements:
-- Multi-agent architecture: Intake, Architect, Planner, QA (TDD-first), Coder, Validator, Recovery
-- TDD-first mandatory (failing tests first, then code)
-- Ask clarifying questions → structured JSON spec → atomic plan → code → tests → retry
-- Backend: Python (FastAPI)
-- Output: generated code, test suite, logs, summary report
-- 8 phases, strictly confirmed one at a time
+Build an "Agentic AI Software Development Framework" that takes a natural-language
+project specification and autonomously generates a working software project using
+multiple AI agents. TDD-first. 8 phases, strictly confirmed one at a time.
 
 ## User Choices (Feb 2026)
 - LLM provider: **Groq** (llama-3.3-70b smart / llama-3.1-8b fast)
 - UI: **Full React dashboard** (Swiss / terminal aesthetic)
-- Delivery: **Strict phased delivery** — pause after each phase
+- Delivery: Strict phased delivery
 - Scope: Full-stack, any-language project generation
 - ZIP download: yes (Phase 8)
 
 ## Architecture
-- Backend: FastAPI (`/app/backend`), Groq async SDK, MongoDB, PyYAML, pytest, rich (CLI)
+- Backend: FastAPI, Groq async SDK, MongoDB, PyYAML, pytest
 - Frontend: React 19 + Tailwind + Phosphor Icons + shadcn primitives
-- Agents: `/app/backend/agents/*` (base_agent + 7 agents)
+- Agents: `/app/backend/agents/*` (base + 7 agents)
 - Orchestration: `/app/backend/core/*` (orchestrator, state_manager, logger)
-- Runtime config: `/app/backend/config/config.yaml`
-- Output projects: `/app/backend/output_projects/<run-id>/`
-- Logs: `/app/backend/logs/framework.log` + JSONL events in `logs/events/` + run snapshots in `logs/runs/`
+- Logs: `logs/framework.log` + per-run JSONL events + run snapshots
 
 ## Phase Progress
 
@@ -36,28 +25,38 @@ Core requirements:
 Folder structure, config.yaml, CLI, FastAPI base, React dashboard shell.
 
 ### ✅ Phase 2 — Core Orchestrator (2026-02-01)
-State manager with disk persistence, full run lifecycle, orchestrator run()
-with retry/dry-run, structured event logging, live-polling dashboard.
+State manager with disk persistence, run lifecycle, retry policy, dry-run skip,
+event logging, live-polling dashboard.
 
 ### ✅ Phase 3 — Intake Agent (2026-02-01)
-- **base_agent.py**: `call_groq_json()` helper with forced JSON mode, configurable model/temp/tokens, structured error logging
-- **intake_agent.py**: analyzes spec, returns EITHER up-to-3 clarifying questions OR full structured JSON spec. Accumulates prior Q&A across rounds.
-- **Orchestrator**: pause/resume aware — `run()` returns early on `awaiting_input`, re-entries skip already-completed agents and resume where paused
-- **Server**: `POST /api/runs/{id}/answer` endpoint — stores answers, resets intake to idle, re-queues orchestrator
-- **Frontend**: `ClarificationCard` (live question renderer with text/option inputs, submit-to-resume), `SpecificationCard` (renders final JSON spec with tech stack, features, constraints, acceptance criteria, clarifications preserved)
-- **Verified E2E**: Real Groq calls produced clarifying questions, accepted 3 answers via `/answer`, returned full structured spec (project_name, description, features[3], tech_stack, constraints, acceptance_criteria[1]). 43 events logged.
-- Version bumped to **0.3.0**; GROQ_API_KEY now configured; `/api/phases` marks Phase 3 complete, Phase 4 current.
+Real Groq calls with forced JSON mode. Multi-round clarification loop.
+Pause/resume orchestrator (`awaiting_input` status). Frontend ClarificationCard
++ SpecificationCard.
 
-### 🟡 Phase 4 — Architect + Planner (PENDING CONFIRMATION)
-- Architect Agent: consumes `specification`, emits `architecture` (folder structure, API endpoints, DB schema)
-- Planner Agent: turns architecture into atomic testable tasks list (with task_id, title, detail, dependencies)
-- Dashboard additions: architecture card (tree/list view), tasks card (checklist with statuses)
+### ✅ Phase 4 — Architect + Planner (2026-02-01)
+- **Architect Agent**: consumes `specification` → emits architecture JSON with
+  `folder_structure` (recursive tree), `apis` (HTTP method/path/purpose/req/resp),
+  `db_schema` (tables/fields/indexes), `modules` (name/responsibility).
+- **Planner Agent**: consumes spec + architecture → emits 6-15 atomic tasks with
+  `id`, `title`, `detail`, `depends_on`, `files`, `test_focus`. Each task is
+  small, testable, file-scoped.
+- **State extension**: `Task` model gained `depends_on`, `files`, `test_focus`
+  fields (preserved across disk persistence).
+- **Frontend**: `ArchitectureCard` (collapsible tree, API list with method colour
+  coding, table cards with field types/indexes, module chips), `TaskListCard`
+  (expandable rows showing detail + test_focus + files + dependency graph).
+- **Babel workaround**: replaced recursive `FolderNode` with iterative `flattenTree`
+  helper after hitting `Maximum call stack size exceeded` in babel-traverse.
+- **Verified E2E** with `noterly` spec: 7 APIs, 1 table, 4 modules, 19 tree rows,
+  9 atomic tasks generated. Run completes in ~5s (post-warmup).
+- Version bumped to **0.4.0**; `/api/phases` reflects Phase 4 complete, Phase 5 current.
 
-### Phase 5 — QA Agent (TDD)
-Failing pytest cases emitted first, one test file per task.
+### 🟡 Phase 5 — QA Agent (TDD) (PENDING CONFIRMATION)
+For each task, generate FAILING pytest test cases first. Tests must cover the
+`test_focus` declared by the planner.
 
 ### Phase 6 — Coder Agent
-Implementation to pass tests.
+Implementation to pass the QA tests.
 
 ### Phase 7 — Validator + Recovery
 Run pytest + lint, retry on failure, escalate to Recovery.
@@ -66,7 +65,9 @@ Run pytest + lint, retry on failure, escalate to Recovery.
 Full pipeline demo, ZIP download, summary report.
 
 ## Known Pending / Gaps
-- Agents architect/planner/qa/coder/validator/recovery still raise NotImplementedError (intentional; dry-run skip).
+- QA/Coder/Validator/Recovery agents still raise NotImplementedError (intentional).
+- First Groq call after backend restart can take 60-90s due to occasional rate-limit
+  retry; subsequent calls are fast (≤5s for full architect+planner run).
 
 ## Next Actions
-1. Await user confirmation to proceed with **Phase 4 — Architect + Planner**.
+Await user confirmation to proceed with **Phase 5 — QA Agent (TDD)**.

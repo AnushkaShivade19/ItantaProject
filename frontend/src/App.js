@@ -9,6 +9,8 @@ import SpecEditor from "./components/SpecEditor";
 import RunSummary from "./components/RunSummary";
 import ClarificationCard from "./components/ClarificationCard";
 import SpecificationCard from "./components/SpecificationCard";
+import ArchitectureCard from "./components/ArchitectureCard";
+import TaskListCard from "./components/TaskListCard";
 import { useAgenticBoot } from "./hooks/useAgenticBoot";
 import { useActiveRun } from "./hooks/useActiveRun";
 import { EVENT_LEVEL_TO_LOG_LEVEL } from "./lib/constants";
@@ -100,6 +102,8 @@ export default function App() {
             <div className="xl:col-span-2 space-y-6">
               <AgentPipeline pipeline={pipeline} statuses={statuses} />
               <SpecificationCard run={activeRun} />
+              <ArchitectureCard run={activeRun} />
+              <TaskListCard run={activeRun} />
               {config && <ConfigPanel config={config} agents={agents} />}
             </div>
             <div className="space-y-6">

@@ -32,7 +32,7 @@ client: AsyncIOMotorClient = AsyncIOMotorClient(mongo_url)
 db = client[os.environ["DB_NAME"]]
 
 # ---- App + router ----
-app: FastAPI = FastAPI(title="Agentic AI Framework", version="0.3.0")
+app: FastAPI = FastAPI(title="Agentic AI Framework", version="0.4.0")
 api_router: APIRouter = APIRouter(prefix="/api")
 
 CONFIG_PATH: Path = ROOT_DIR / "config" / "config.yaml"
@@ -178,9 +178,10 @@ async def list_phases() -> list[PhaseInfo]:
                   status="complete",
                   description="Groq-powered clarifying questions + structured JSON spec"),
         PhaseInfo(id="phase-4-architect-planner", title="Architect + Planner",
-                  status="current", description="System design + atomic tasks"),
+                  status="complete",
+                  description="System design (folders, APIs, DB) + atomic testable tasks"),
         PhaseInfo(id="phase-5-qa", title="QA Agent (TDD)",
-                  status="pending", description="Failing pytest cases first"),
+                  status="current", description="Failing pytest cases first"),
         PhaseInfo(id="phase-6-coder", title="Coder Agent",
                   status="pending", description="Implementation to pass tests"),
         PhaseInfo(id="phase-7-validator-recovery", title="Validator + Recovery",

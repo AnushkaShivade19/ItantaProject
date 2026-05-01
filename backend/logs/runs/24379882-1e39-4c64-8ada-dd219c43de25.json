@@ -1,0 +1,465 @@
+{
+  "id": "24379882-1e39-4c64-8ada-dd219c43de25",
+  "spec_input": "Build a notes app called noterly with FastAPI + MongoDB backend, React frontend. Features: create note, edit note, delete note, search by title, tag filtering. Acceptance: notes persist across sessions; search returns under 100ms.",
+  "status": "completed",
+  "phase": "phase-2-orchestrator",
+  "created_at": "2026-05-01T07:30:14.774400+00:00",
+  "updated_at": "2026-05-01T07:30:19.557083+00:00",
+  "specification": {
+    "project_name": "noterly",
+    "description": "A simple notes app for personal use.",
+    "features": [
+      "create note",
+      "edit note",
+      "delete note",
+      "search by title",
+      "tag filtering"
+    ],
+    "constraints": [],
+    "tech_stack": {
+      "frontend": "React",
+      "backend": "FastAPI",
+      "database": "MongoDB",
+      "other": []
+    },
+    "acceptance_criteria": [
+      "notes persist across sessions",
+      "search returns under 100ms"
+    ],
+    "mode": "spec",
+    "clarifications": []
+  },
+  "architecture": {
+    "folder_structure": {
+      "name": "noterly",
+      "type": "dir",
+      "children": [
+        {
+          "name": "backend/",
+          "type": "dir",
+          "children": [
+            {
+              "name": "main.py",
+              "type": "file",
+              "purpose": "FastAPI app entrypoint"
+            },
+            {
+              "name": "models/",
+              "type": "dir",
+              "children": [
+                {
+                  "name": "note.py",
+                  "type": "file",
+                  "purpose": "Note model definition"
+                }
+              ]
+            },
+            {
+              "name": "routes/",
+              "type": "dir",
+              "children": [
+                {
+                  "name": "notes.py",
+                  "type": "file",
+                  "purpose": "Notes API routes"
+                }
+              ]
+            },
+            {
+              "name": "tests/",
+              "type": "dir",
+              "children": [
+                {
+                  "name": "test_notes.py",
+                  "type": "file",
+                  "purpose": "Notes API tests"
+                }
+              ]
+            },
+            {
+              "name": "config.py",
+              "type": "file",
+              "purpose": "App configuration"
+            }
+          ]
+        },
+        {
+          "name": "frontend/",
+          "type": "dir",
+          "children": [
+            {
+              "name": "public/",
+              "type": "dir",
+              "children": [
+                {
+                  "name": "index.html",
+                  "type": "file",
+                  "purpose": "React app entrypoint"
+                }
+              ]
+            },
+            {
+              "name": "src/",
+              "type": "dir",
+              "children": [
+                {
+                  "name": "components/",
+                  "type": "dir",
+                  "children": [
+                    {
+                      "name": "Note.js",
+                      "type": "file",
+                      "purpose": "Note component"
+                    }
+                  ]
+                },
+                {
+                  "name": "App.js",
+                  "type": "file",
+                  "purpose": "React app component"
+                }
+              ]
+            },
+            {
+              "name": "package.json",
+              "type": "file",
+              "purpose": "React app dependencies"
+            }
+          ]
+        },
+        {
+          "name": "README.md",
+          "type": "file",
+          "purpose": "Project documentation"
+        }
+      ]
+    },
+    "apis": [
+      {
+        "method": "POST",
+        "path": "/api/notes",
+        "purpose": "create a new note",
+        "request": {
+          "title": "string",
+          "content": "string",
+          "tags": "array<string>"
+        },
+        "response": {
+          "id": "string",
+          "title": "string",
+          "content": "string",
+          "tags": "array<string>"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/notes",
+        "purpose": "get all notes",
+        "response": {
+          "notes": "array<{id: string, title: string, content: string, tags: array<string>}>"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/notes/{note_id}",
+        "purpose": "get a note by id",
+        "response": {
+          "id": "string",
+          "title": "string",
+          "content": "string",
+          "tags": "array<string>"
+        }
+      },
+      {
+        "method": "PUT",
+        "path": "/api/notes/{note_id}",
+        "purpose": "update a note",
+        "request": {
+          "title": "string?",
+          "content": "string?",
+          "tags": "array<string>?"
+        },
+        "response": {
+          "id": "string",
+          "title": "string",
+          "content": "string",
+          "tags": "array<string>"
+        }
+      },
+      {
+        "method": "DELETE",
+        "path": "/api/notes/{note_id}",
+        "purpose": "delete a note",
+        "response": {
+          "message": "string"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/notes/search",
+        "purpose": "search notes by title",
+        "request": {
+          "query": "string"
+        },
+        "response": {
+          "notes": "array<{id: string, title: string, content: string, tags: array<string>}>"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/notes/tags/{tag}",
+        "purpose": "get notes by tag",
+        "response": {
+          "notes": "array<{id: string, title: string, content: string, tags: array<string>}>"
+        }
+      }
+    ],
+    "db_schema": [
+      {
+        "name": "notes",
+        "fields": [
+          {
+            "name": "_id",
+            "type": "ObjectId",
+            "constraints": [
+              "pk"
+            ]
+          },
+          {
+            "name": "title",
+            "type": "string",
+            "constraints": [
+              "not_null"
+            ]
+          },
+          {
+            "name": "content",
+            "type": "string",
+            "constraints": [
+              "not_null"
+            ]
+          },
+          {
+            "name": "tags",
+            "type": "array<string>",
+            "constraints": []
+          }
+        ],
+        "indexes": [
+          "title",
+          "tags"
+        ]
+      }
+    ],
+    "modules": [
+      {
+        "name": "notes",
+        "responsibility": "CRUD operations for notes"
+      },
+      {
+        "name": "search",
+        "responsibility": "search notes by title"
+      },
+      {
+        "name": "tags",
+        "responsibility": "filter notes by tags"
+      },
+      {
+        "name": "auth",
+        "responsibility": "user authentication and authorization"
+      }
+    ]
+  },
+  "tasks": [
+    {
+      "id": "t-001",
+      "title": "Define note model",
+      "detail": "Create a Note model with title, content, and tags fields. The model should be defined in the backend/models/note.py file.",
+      "status": "pending",
+      "depends_on": [],
+      "files": [
+        "backend/models/note.py"
+      ],
+      "test_focus": "Verify that the Note model has the correct fields and data types.",
+      "created_at": "2026-05-01T07:30:19.516983+00:00"
+    },
+    {
+      "id": "t-002",
+      "title": "Implement note CRUD operations",
+      "detail": "Create functions for creating, reading, updating, and deleting notes. These functions should be implemented in the backend/routes/notes.py file.",
+      "status": "pending",
+      "depends_on": [
+        "t-001"
+      ],
+      "files": [
+        "backend/routes/notes.py"
+      ],
+      "test_focus": "Verify that the CRUD operations work correctly and return the expected responses.",
+      "created_at": "2026-05-01T07:30:19.517645+00:00"
+    },
+    {
+      "id": "t-003",
+      "title": "Create note API routes",
+      "detail": "Define API routes for creating, reading, updating, and deleting notes. These routes should be defined in the backend/routes/notes.py file.",
+      "status": "pending",
+      "depends_on": [
+        "t-002"
+      ],
+      "files": [
+        "backend/routes/notes.py"
+      ],
+      "test_focus": "Verify that the API routes return the expected responses and handle errors correctly.",
+      "created_at": "2026-05-01T07:30:19.519878+00:00"
+    },
+    {
+      "id": "t-004",
+      "title": "Implement search functionality",
+      "detail": "Create a function for searching notes by title. This function should be implemented in the backend/routes/notes.py file.",
+      "status": "pending",
+      "depends_on": [
+        "t-001"
+      ],
+      "files": [
+        "backend/routes/notes.py"
+      ],
+      "test_focus": "Verify that the search function returns the correct notes and handles errors correctly.",
+      "created_at": "2026-05-01T07:30:19.522131+00:00"
+    },
+    {
+      "id": "t-005",
+      "title": "Implement tag filtering",
+      "detail": "Create a function for filtering notes by tags. This function should be implemented in the backend/routes/notes.py file.",
+      "status": "pending",
+      "depends_on": [
+        "t-001"
+      ],
+      "files": [
+        "backend/routes/notes.py"
+      ],
+      "test_focus": "Verify that the tag filtering function returns the correct notes and handles errors correctly.",
+      "created_at": "2026-05-01T07:30:19.524226+00:00"
+    },
+    {
+      "id": "t-006",
+      "title": "Create React note component",
+      "detail": "Create a React component for displaying a note. This component should be defined in the frontend/src/components/Note.js file.",
+      "status": "pending",
+      "depends_on": [],
+      "files": [
+        "frontend/src/components/Note.js"
+      ],
+      "test_focus": "Verify that the note component displays the correct information and handles errors correctly.",
+      "created_at": "2026-05-01T07:30:19.526400+00:00"
+    },
+    {
+      "id": "t-007",
+      "title": "Create React app component",
+      "detail": "Create a React component for the app. This component should be defined in the frontend/src/App.js file and should use the note component.",
+      "status": "pending",
+      "depends_on": [
+        "t-006"
+      ],
+      "files": [
+        "frontend/src/App.js"
+      ],
+      "test_focus": "Verify that the app component displays the correct information and handles errors correctly.",
+      "created_at": "2026-05-01T07:30:19.528531+00:00"
+    },
+    {
+      "id": "t-008",
+      "title": "Implement note persistence",
+      "detail": "Create a function for persisting notes across sessions. This function should be implemented in the backend/main.py file.",
+      "status": "pending",
+      "depends_on": [
+        "t-001"
+      ],
+      "files": [
+        "backend/main.py"
+      ],
+      "test_focus": "Verify that notes are persisted correctly across sessions.",
+      "created_at": "2026-05-01T07:30:19.530889+00:00"
+    },
+    {
+      "id": "t-009",
+      "title": "Optimize search performance",
+      "detail": "Optimize the search function to return results in under 100ms. This optimization should be implemented in the backend/routes/notes.py file.",
+      "status": "pending",
+      "depends_on": [
+        "t-004"
+      ],
+      "files": [
+        "backend/routes/notes.py"
+      ],
+      "test_focus": "Verify that the search function returns results in under 100ms.",
+      "created_at": "2026-05-01T07:30:19.533677+00:00"
+    }
+  ],
+  "test_results": null,
+  "summary_report": null,
+  "output_dir": null,
+  "agents": {
+    "intake": {
+      "name": "intake",
+      "status": "success",
+      "started_at": "2026-05-01T07:30:14.834124+00:00",
+      "ended_at": "2026-05-01T07:30:15.246353+00:00",
+      "attempts": 1,
+      "last_error": null,
+      "output_summary": "spec: noterly"
+    },
+    "architect": {
+      "name": "architect",
+      "status": "success",
+      "started_at": "2026-05-01T07:30:15.247631+00:00",
+      "ended_at": "2026-05-01T07:30:17.314316+00:00",
+      "attempts": 1,
+      "last_error": null,
+      "output_summary": "arch: 7 APIs \u00b7 1 tables \u00b7 4 modules"
+    },
+    "planner": {
+      "name": "planner",
+      "status": "success",
+      "started_at": "2026-05-01T07:30:17.316668+00:00",
+      "ended_at": "2026-05-01T07:30:19.536293+00:00",
+      "attempts": 1,
+      "last_error": null,
+      "output_summary": "plan: 9 atomic tasks"
+    },
+    "qa": {
+      "name": "qa",
+      "status": "skipped",
+      "started_at": "2026-05-01T07:30:19.538671+00:00",
+      "ended_at": "2026-05-01T07:30:19.540891+00:00",
+      "attempts": 1,
+      "last_error": null,
+      "output_summary": "dry-run \u00b7 agent body arrives in a later phase"
+    },
+    "coder": {
+      "name": "coder",
+      "status": "skipped",
+      "started_at": "2026-05-01T07:30:19.543298+00:00",
+      "ended_at": "2026-05-01T07:30:19.545602+00:00",
+      "attempts": 1,
+      "last_error": null,
+      "output_summary": "dry-run \u00b7 agent body arrives in a later phase"
+    },
+    "validator": {
+      "name": "validator",
+      "status": "skipped",
+      "started_at": "2026-05-01T07:30:19.548230+00:00",
+      "ended_at": "2026-05-01T07:30:19.550459+00:00",
+      "attempts": 1,
+      "last_error": null,
+      "output_summary": "dry-run \u00b7 agent body arrives in a later phase"
+    },
+    "recovery": {
+      "name": "recovery",
+      "status": "skipped",
+      "started_at": "2026-05-01T07:30:19.552669+00:00",
+      "ended_at": "2026-05-01T07:30:19.554856+00:00",
+      "attempts": 1,
+      "last_error": null,
+      "output_summary": "dry-run \u00b7 agent body arrives in a later phase"
+    }
+  }
+}
