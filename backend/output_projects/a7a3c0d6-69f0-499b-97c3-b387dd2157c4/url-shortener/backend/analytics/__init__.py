@@ -1,0 +1,1 @@
+from .analytics import get_hit_count

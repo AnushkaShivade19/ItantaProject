@@ -1,0 +1,554 @@
+{
+  "id": "a7a3c0d6-69f0-499b-97c3-b387dd2157c4",
+  "spec_input": "Build a URL shortener with FastAPI, PostgreSQL, and hit-count analytics.",
+  "status": "completed",
+  "phase": "phase-2-orchestrator",
+  "created_at": "2026-05-01T14:36:58.358443+00:00",
+  "updated_at": "2026-05-01T14:45:39.529137+00:00",
+  "specification": {
+    "project_name": "url-shortener",
+    "description": "A URL shortener with hit-count analytics built using FastAPI and PostgreSQL.",
+    "features": [
+      "Generating short URLs",
+      "Redirecting to the original link",
+      "Storing mappings in a database",
+      "Tracking hit-count analytics"
+    ],
+    "constraints": [
+      "Use FastAPI for the API",
+      "Use PostgreSQL for persistent storage",
+      "Ensure unique short codes",
+      "Maintain accurate hit-count tracking",
+      "Handle errors and edge cases",
+      "Keep the system performant and scalable"
+    ],
+    "tech_stack": {
+      "frontend": null,
+      "backend": "FastAPI",
+      "database": "PostgreSQL",
+      "other": [
+        "hit-count analytics"
+      ]
+    },
+    "acceptance_criteria": [
+      "Users can create short URLs that reliably redirect to the original links",
+      "Data is correctly stored and retrieved",
+      "Hit counts are accurately tracked",
+      "The API performs consistently with proper error handling"
+    ],
+    "mode": "spec",
+    "clarifications": [
+      {
+        "id": "q1",
+        "question": "What are the primary features of the URL shortener?",
+        "answer": "Generating short URLs, redirecting to the original link, storing mappings in a database, and tracking hit-count analytics."
+      },
+      {
+        "id": "q2",
+        "question": "What are the key acceptance criteria for the URL shortener?",
+        "answer": "Users can create short URLs that reliably redirect to the original links, data is correctly stored and retrieved, hit counts are accurately tracked, and the API performs consistently with proper error handling."
+      },
+      {
+        "id": "q3",
+        "question": "Are there any specific constraints or requirements for the project?",
+        "answer": "Use FastAPI for the API, PostgreSQL for persistent storage, ensure unique short codes, maintain accurate hit-count tracking, handle errors and edge cases, and keep the system performant and scalable."
+      }
+    ]
+  },
+  "architecture": {
+    "folder_structure": {
+      "name": "url-shortener",
+      "type": "dir",
+      "children": [
+        {
+          "name": "backend/",
+          "type": "dir",
+          "children": [
+            {
+              "name": "main.py",
+              "type": "file",
+              "purpose": "FastAPI app entrypoint"
+            },
+            {
+              "name": "models.py",
+              "type": "file",
+              "purpose": "Database models"
+            },
+            {
+              "name": "routes.py",
+              "type": "file",
+              "purpose": "API routes"
+            },
+            {
+              "name": "schemas.py",
+              "type": "file",
+              "purpose": "API request/response schemas"
+            },
+            {
+              "name": "tests/",
+              "type": "dir",
+              "children": [
+                {
+                  "name": "test_models.py",
+                  "type": "file",
+                  "purpose": "Database model tests"
+                },
+                {
+                  "name": "test_routes.py",
+                  "type": "file",
+                  "purpose": "API route tests"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "frontend/",
+          "type": "dir",
+          "children": []
+        },
+        {
+          "name": "README.md",
+          "type": "file",
+          "purpose": "Project description"
+        },
+        {
+          "name": "requirements.txt",
+          "type": "file",
+          "purpose": "Dependency list"
+        },
+        {
+          "name": "docker-compose.yml",
+          "type": "file",
+          "purpose": "Containerization configuration"
+        }
+      ]
+    },
+    "apis": [
+      {
+        "method": "POST",
+        "path": "/api/links",
+        "purpose": "Create a shortened URL",
+        "request": {
+          "long_url": "string",
+          "alias": "string?"
+        },
+        "response": {
+          "id": "uuid",
+          "alias": "string",
+          "short_url": "string"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/links/{alias}",
+        "purpose": "Redirect to the original link",
+        "request": {},
+        "response": {
+          "id": "uuid",
+          "long_url": "string",
+          "hit_count": "integer"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/api/links/{alias}/stats",
+        "purpose": "Retrieve hit-count analytics",
+        "request": {},
+        "response": {
+          "id": "uuid",
+          "long_url": "string",
+          "hit_count": "integer",
+          "created_at": "datetime"
+        }
+      }
+    ],
+    "db_schema": [
+      {
+        "name": "links",
+        "fields": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "constraints": [
+              "pk"
+            ]
+          },
+          {
+            "name": "long_url",
+            "type": "text",
+            "constraints": [
+              "not_null"
+            ]
+          },
+          {
+            "name": "alias",
+            "type": "text",
+            "constraints": [
+              "unique"
+            ]
+          },
+          {
+            "name": "hit_count",
+            "type": "integer",
+            "constraints": []
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp",
+            "constraints": []
+          }
+        ],
+        "indexes": [
+          "alias"
+        ]
+      }
+    ],
+    "modules": [
+      {
+        "name": "auth",
+        "responsibility": "JWT issuance + verification"
+      },
+      {
+        "name": "links",
+        "responsibility": "CRUD for shortened URLs"
+      },
+      {
+        "name": "analytics",
+        "responsibility": "Hit-count tracking and analytics"
+      }
+    ]
+  },
+  "tasks": [
+    {
+      "id": "t-001",
+      "title": "Create project structure",
+      "detail": "Set up the project directory and files as per the architecture",
+      "status": "in_progress",
+      "depends_on": [],
+      "files": [
+        "url-shortener/README.md",
+        "url-shortener/requirements.txt",
+        "url-shortener/docker-compose.yml"
+      ],
+      "test_focus": "Project structure is correctly set up",
+      "test_file_path": "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\tests\\test_t-001.py",
+      "code_file_paths": [
+        "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\url-shortener\\README.md",
+        "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\url-shortener\\requirements.txt",
+        "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\url-shortener\\docker-compose.yml",
+        "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\url-shortener\\links.py"
+      ],
+      "created_at": "2026-05-01T14:41:37.722527+00:00"
+    },
+    {
+      "id": "t-002",
+      "title": "Define database schema",
+      "detail": "Create the database schema as per the db_schema specification",
+      "status": "in_progress",
+      "depends_on": [],
+      "files": [
+        "url-shortener/backend/models.py"
+      ],
+      "test_focus": "Database schema is correctly defined",
+      "test_file_path": "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\tests\\test_t-002.py",
+      "code_file_paths": [
+        "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\url-shortener\\backend\\models.py"
+      ],
+      "created_at": "2026-05-01T14:41:37.724560+00:00"
+    },
+    {
+      "id": "t-003",
+      "title": "Implement database models",
+      "detail": "Create the database models as per the db_schema specification",
+      "status": "in_progress",
+      "depends_on": [
+        "t-002"
+      ],
+      "files": [
+        "url-shortener/backend/models.py"
+      ],
+      "test_focus": "Database models are correctly implemented",
+      "test_file_path": "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\tests\\test_t-003.py",
+      "code_file_paths": [
+        "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\url-shortener\\backend\\models.py"
+      ],
+      "created_at": "2026-05-01T14:41:37.728599+00:00"
+    },
+    {
+      "id": "t-004",
+      "title": "Create API routes",
+      "detail": "Implement the API routes as per the apis specification",
+      "status": "in_progress",
+      "depends_on": [
+        "t-003"
+      ],
+      "files": [
+        "url-shortener/backend/routes.py"
+      ],
+      "test_focus": "API routes are correctly implemented",
+      "test_file_path": "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\tests\\test_t-004.py",
+      "code_file_paths": [
+        "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\url-shortener\\backend\\routes.py",
+        "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\url-shortener\\backend\\links.py"
+      ],
+      "created_at": "2026-05-01T14:41:37.732197+00:00"
+    },
+    {
+      "id": "t-005",
+      "title": "Implement hit-count analytics",
+      "detail": "Create the hit-count analytics functionality as per the analytics responsibility",
+      "status": "in_progress",
+      "depends_on": [
+        "t-003"
+      ],
+      "files": [
+        "url-shortener/backend/analytics.py"
+      ],
+      "test_focus": "Hit-count analytics is correctly implemented",
+      "test_file_path": "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\tests\\test_t-005.py",
+      "code_file_paths": [
+        "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\url-shortener\\backend\\analytics.py",
+        "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\url-shortener\\backend\\analytics\\__init__.py"
+      ],
+      "created_at": "2026-05-01T14:41:37.735978+00:00"
+    },
+    {
+      "id": "t-006",
+      "title": "Implement API request/response schemas",
+      "detail": "Create the API request/response schemas as per the schemas specification",
+      "status": "in_progress",
+      "depends_on": [
+        "t-004"
+      ],
+      "files": [
+        "url-shortener/backend/schemas.py"
+      ],
+      "test_focus": "API request/response schemas are correctly implemented",
+      "test_file_path": "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\tests\\test_t-006.py",
+      "code_file_paths": [
+        "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\url-shortener\\backend\\schemas.py"
+      ],
+      "created_at": "2026-05-01T14:41:37.739506+00:00"
+    },
+    {
+      "id": "t-007",
+      "title": "Implement API entrypoint",
+      "detail": "Create the FastAPI app entrypoint as per the main.py specification",
+      "status": "in_progress",
+      "depends_on": [
+        "t-004",
+        "t-005",
+        "t-006"
+      ],
+      "files": [
+        "url-shortener/backend/main.py"
+      ],
+      "test_focus": "API entrypoint is correctly implemented",
+      "test_file_path": "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\tests\\test_t-007.py",
+      "code_file_paths": [
+        "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\url-shortener\\backend\\main.py"
+      ],
+      "created_at": "2026-05-01T14:41:37.744060+00:00"
+    },
+    {
+      "id": "t-008",
+      "title": "Implement database CRUD operations",
+      "detail": "Create the database CRUD operations as per the links responsibility",
+      "status": "in_progress",
+      "depends_on": [
+        "t-003"
+      ],
+      "files": [
+        "url-shortener/backend/models.py"
+      ],
+      "test_focus": "Database CRUD operations are correctly implemented",
+      "test_file_path": "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\tests\\test_t-008.py",
+      "code_file_paths": [
+        "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\url-shortener\\backend\\models.py"
+      ],
+      "created_at": "2026-05-01T14:41:37.746068+00:00"
+    },
+    {
+      "id": "t-009",
+      "title": "Implement API error handling",
+      "detail": "Create the API error handling functionality as per the constraints specification",
+      "status": "in_progress",
+      "depends_on": [
+        "t-007"
+      ],
+      "files": [
+        "url-shortener/backend/main.py"
+      ],
+      "test_focus": "API error handling is correctly implemented",
+      "test_file_path": "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\tests\\test_t-009.py",
+      "code_file_paths": [
+        "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\url-shortener\\backend\\main.py"
+      ],
+      "created_at": "2026-05-01T14:41:37.749568+00:00"
+    },
+    {
+      "id": "t-010",
+      "title": "Implement API performance optimization",
+      "detail": "Create the API performance optimization functionality as per the constraints specification",
+      "status": "in_progress",
+      "depends_on": [
+        "t-007"
+      ],
+      "files": [
+        "url-shortener/backend/main.py"
+      ],
+      "test_focus": "API performance optimization is correctly implemented",
+      "test_file_path": "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\tests\\test_t-010.py",
+      "code_file_paths": [
+        "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\url-shortener\\backend\\main.py",
+        "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\url-shortener\\backend\\links.py"
+      ],
+      "created_at": "2026-05-01T14:41:37.752043+00:00"
+    },
+    {
+      "id": "t-011",
+      "title": "Write API tests",
+      "detail": "Create the API tests as per the acceptance_criteria specification",
+      "status": "in_progress",
+      "depends_on": [
+        "t-007"
+      ],
+      "files": [
+        "url-shortener/backend/tests/test_routes.py"
+      ],
+      "test_focus": "API tests are correctly implemented",
+      "test_file_path": "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\tests\\test_t-011.py",
+      "code_file_paths": [
+        "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\url-shortener\\backend\\tests\\test_routes.py",
+        "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\url-shortener\\backend\\links.py"
+      ],
+      "created_at": "2026-05-01T14:41:37.755965+00:00"
+    },
+    {
+      "id": "t-012",
+      "title": "Write database tests",
+      "detail": "Create the database tests as per the acceptance_criteria specification",
+      "status": "in_progress",
+      "depends_on": [
+        "t-003"
+      ],
+      "files": [
+        "url-shortener/backend/tests/test_models.py"
+      ],
+      "test_focus": "Database tests are correctly implemented",
+      "test_file_path": "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\tests\\test_t-012.py",
+      "code_file_paths": [
+        "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\url-shortener\\backend\\tests\\test_models.py",
+        "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\url-shortener\\backend\\models.py",
+        "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\url-shortener\\backend\\models\\__init__.py"
+      ],
+      "created_at": "2026-05-01T14:41:37.759524+00:00"
+    },
+    {
+      "id": "t-013",
+      "title": "Write analytics tests",
+      "detail": "Create the analytics tests as per the acceptance_criteria specification",
+      "status": "in_progress",
+      "depends_on": [
+        "t-005"
+      ],
+      "files": [
+        "url-shortener/backend/tests/test_analytics.py"
+      ],
+      "test_focus": "Analytics tests are correctly implemented",
+      "test_file_path": "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\tests\\test_t-013.py",
+      "code_file_paths": [
+        "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\url-shortener\\backend\\tests\\test_analytics.py"
+      ],
+      "created_at": "2026-05-01T14:41:37.763079+00:00"
+    },
+    {
+      "id": "t-014",
+      "title": "Write API documentation",
+      "detail": "Create the API documentation as per the acceptance_criteria specification",
+      "status": "in_progress",
+      "depends_on": [
+        "t-007"
+      ],
+      "files": [
+        "url-shortener/backend/docs/api.md"
+      ],
+      "test_focus": "API documentation is correctly implemented",
+      "test_file_path": "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\tests\\test_t-014.py",
+      "code_file_paths": [
+        "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\url-shortener\\backend\\docs\\api.py",
+        "output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4\\url-shortener\\backend\\docs\\api.md"
+      ],
+      "created_at": "2026-05-01T14:41:37.766357+00:00"
+    }
+  ],
+  "test_results": null,
+  "summary_report": null,
+  "output_dir": "C:\\Users\\Lenovo\\OneDrive\\Desktop\\Itanta 2\\ItantaProject\\backend\\output_projects\\a7a3c0d6-69f0-499b-97c3-b387dd2157c4",
+  "agents": {
+    "intake": {
+      "name": "intake",
+      "status": "success",
+      "started_at": "2026-05-01T14:36:58.469444+00:00",
+      "ended_at": "2026-05-01T14:40:34.354388+00:00",
+      "attempts": 1,
+      "last_error": null,
+      "output_summary": "spec: url-shortener"
+    },
+    "architect": {
+      "name": "architect",
+      "status": "success",
+      "started_at": "2026-05-01T14:40:34.359555+00:00",
+      "ended_at": "2026-05-01T14:41:14.885449+00:00",
+      "attempts": 1,
+      "last_error": null,
+      "output_summary": "arch: 3 APIs \u00b7 1 tables \u00b7 3 modules"
+    },
+    "planner": {
+      "name": "planner",
+      "status": "success",
+      "started_at": "2026-05-01T14:41:14.891013+00:00",
+      "ended_at": "2026-05-01T14:41:37.770052+00:00",
+      "attempts": 1,
+      "last_error": null,
+      "output_summary": "plan: 14 atomic tasks"
+    },
+    "qa": {
+      "name": "qa",
+      "status": "success",
+      "started_at": "2026-05-01T14:41:37.774354+00:00",
+      "ended_at": "2026-05-01T14:43:21.240452+00:00",
+      "attempts": 1,
+      "last_error": null,
+      "output_summary": "qa: 14 failing test files written"
+    },
+    "coder": {
+      "name": "coder",
+      "status": "success",
+      "started_at": "2026-05-01T14:43:21.245731+00:00",
+      "ended_at": "2026-05-01T14:45:39.478683+00:00",
+      "attempts": 2,
+      "last_error": "Error code: 400 - {'error': {'message': \"Failed to generate JSON. Please adjust your prompt. See 'failed_generation' for more details.\", 'type': 'invalid_request_error', 'code': 'json_validate_failed', 'failed_generation': '{\\n  \"files\":[\\n      {\\n         \"path\":\"url-shortener/backend/routes.py\",\\n         \"content\":\"from flask import Flask, request, jsonify, redirect, url_for\\\\nfrom uuid import uuid4\\\\nfrom datetime import datetime\\\\nfrom url_shortener.backend.links import get_link, create_link, update_link\\\\n\\\\napp = Flask(__name__)\\\\n\\\\n@app.route(\\'/api/links\\', methods=[\\'POST\\'])\\\\ndef create_shortened_url():\\\\n    data = request.get_json()\\\\n    if \\'long_url\\' not in data or \\'alias\\' not in data:\\\\n        return jsonify({\\'error\\': \\'Missing required fields\\'}), 400\\\\n    link_id = str(uuid4())\\\\n    link = create_link(data[\\'long_url\\'], data[\\'alias\\'], link_id)\\\\n    return jsonify({\\'id\\': link_id, \\'alias\\': data[\\'alias\\'], \\'short_url\\': f\\'{request.url_root}api/links/{data[\"alias\"]}\\'}), 201\\\\n\\\\n@app.route(\\'/api/links/<alias>\\', methods=[\\'GET\\'])\\\\ndef redirect_to_original_link(alias):\\\\n    link = get_link(alias)\\\\n    if link is None:\\\\n        return jsonify({\\'error\\': \\'Link not found\\'}), 404\\\\n    update_link(link.id, link.long_url, link.alias, link.hit_count + 1)\\\\n    return redirect(link.long_url, code=302)\\\\n\\\\n@app.route(\\'/api/links/<alias>/stats\\', methods=[\\'GET\\'])\\\\ndef retrieve_hit_count_analytics(alias):\\\\n    link = get_link(alias)\\\\n    if link is None:\\\\n        return jsonify({\\'error\\': \\'Link not found\\'}), 404\\\\n    return jsonify({\\'id\\': link.id, \\'long_url\\': link.long_url, \\'hit_count\\': link.hit_count, \\'created_at\\': link.created_at})\\\\n\"\\n      },\\n      {\\n         \"path\":\"url-shortener/backend/links.py\",\\n         \"content\":\"from datetime import datetime\\\\nfrom uuid import uuid4\\\\nimport sqlite3\\\\n\\\\nclass Link:\\\\n    def __init__(self, id, long_url, alias, hit_count=0, created_at=None):\\\\n        self.id = id\\\\n        self.long_url = long_url\\\\n        self.alias = alias\\\\n        self.hit_count = hit_count\\\\n        self.created_at = created_at if created_at else datetime.now().strftime(\\'%Y-%m-%d %H:%M:%S\\')\\\\n\\\\n    def to_dict(self):\\\\n        return {\\'id\\': self.id, \\'long_url\\': self.long_url, \\'alias\\': self.alias, \\'hit_count\\': self.hit_count, \\'created_at\\': self.created_at}\\\\n\\\\nlinks_db = \\'links.db\\'\\\\n\\\\ndef create_link(long_url, alias, link_id):\\\\n    conn = sqlite3.connect(links_db)\\\\n    c = conn.cursor()\\\\n    c.execute(\\\\\"CREATE TABLE IF NOT EXISTS links (id text PRIMARY KEY, long_url text, alias text, hit_count integer, created_at text)\\\\\")\\\\n    c.execute(\\\\\"INSERT INTO links VALUES (?, ?, ?, ?, ?)\\\\\", (link_id, long_url, alias, 0, datetime.now().strftime(\\'%Y-%m-%d %H:%M:%S\\')))\\\\n    conn.commit()\\\\n    conn.close()\\\\n    return Link(link_id, long_url, alias)\\\\n\\\\ndef get_link(alias):\\\\n    conn = sqlite3.connect(links_db)\\\\n    c = conn.cursor()\\\\n    c.execute(\\\\\"SELECT * FROM links WHERE alias = ?\\\\\", (alias,))\\\\n    link_data = c.fetchone()\\\\n    conn.close()\\\\n    if link_data is None:\\\\n        return None\\\\n    return Link(link_data[0], link_data[1], link_data[2], link_data[3], link_data[4])\\\\n\\\\ndef update_link(link_id, long_url, alias, hit_count):\\\\n    conn = sqlite3.connect(links_db)\\\\n    c = conn.cursor()\\\\n    c.execute(\\\\\"UPDATE links SET hit_count = ? WHERE id = ?\\\\\", (hit_count, link_id))\\\\n    conn.commit()\\\\n    conn.close()\"\\n      },\\n      {\\n         \"path\":\"url-shortener/backend/__init__.py\",\\n         \"content\":\"\"\\n      }\\n   ],\\n   \"rationale\":\"Implemented API routes for creating shortened URLs, redirecting to original links, and retrieving hit-count analytics.\"\\n}'}}",
+      "output_summary": "coder: 24 files across 14 tasks"
+    },
+    "validator": {
+      "name": "validator",
+      "status": "skipped",
+      "started_at": "2026-05-01T14:45:39.484484+00:00",
+      "ended_at": "2026-05-01T14:45:39.501528+00:00",
+      "attempts": 1,
+      "last_error": null,
+      "output_summary": "dry-run \u00b7 agent body arrives in a later phase"
+    },
+    "recovery": {
+      "name": "recovery",
+      "status": "skipped",
+      "started_at": "2026-05-01T14:45:39.509744+00:00",
+      "ended_at": "2026-05-01T14:45:39.521013+00:00",
+      "attempts": 1,
+      "last_error": null,
+      "output_summary": "dry-run \u00b7 agent body arrives in a later phase"
+    }
+  }
+}
