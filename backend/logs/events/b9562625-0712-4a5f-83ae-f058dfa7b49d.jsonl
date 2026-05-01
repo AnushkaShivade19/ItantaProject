@@ -1,0 +1,11 @@
+{"ts": "2026-05-01T07:19:11.364769+00:00", "run_id": "b9562625-0712-4a5f-83ae-f058dfa7b49d", "level": "info", "agent": "state", "message": "run created", "spec_preview": "test refactor stability"}
+{"ts": "2026-05-01T07:19:11.517923+00:00", "run_id": "b9562625-0712-4a5f-83ae-f058dfa7b49d", "level": "info", "agent": "state", "message": "run updated: ['status']"}
+{"ts": "2026-05-01T07:19:11.518082+00:00", "run_id": "b9562625-0712-4a5f-83ae-f058dfa7b49d", "level": "info", "agent": "orchestrator", "message": "pipeline start \u00b7 7 agents", "pipeline": ["intake", "architect", "planner", "qa", "coder", "validator", "recovery"]}
+{"ts": "2026-05-01T07:19:11.519163+00:00", "run_id": "b9562625-0712-4a5f-83ae-f058dfa7b49d", "level": "running", "agent": "intake", "message": "agent \u2192 running", "attempts": 0, "error": null}
+{"ts": "2026-05-01T07:19:11.521029+00:00", "run_id": "b9562625-0712-4a5f-83ae-f058dfa7b49d", "level": "info", "agent": "intake", "message": "groq call \u00b7 model=llama-3.1-8b-instant temp=0.3"}
+{"ts": "2026-05-01T07:19:12.063886+00:00", "run_id": "b9562625-0712-4a5f-83ae-f058dfa7b49d", "level": "info", "agent": "intake", "message": "groq ok", "prompt_tokens": 546, "completion_tokens": 132}
+{"ts": "2026-05-01T07:19:12.064377+00:00", "run_id": "b9562625-0712-4a5f-83ae-f058dfa7b49d", "level": "info", "agent": "state", "message": "specification stored", "features": 0}
+{"ts": "2026-05-01T07:19:12.065767+00:00", "run_id": "b9562625-0712-4a5f-83ae-f058dfa7b49d", "level": "info", "agent": "state", "message": "run updated: ['status']"}
+{"ts": "2026-05-01T07:19:12.065871+00:00", "run_id": "b9562625-0712-4a5f-83ae-f058dfa7b49d", "level": "warn", "agent": "intake", "message": "awaiting 2 clarification(s)", "reasoning": "The brief mentions 'test refactor stability', but it's unclear what specific project or application this refers to, and what aspects of stability are being prioritized."}
+{"ts": "2026-05-01T07:19:12.066873+00:00", "run_id": "b9562625-0712-4a5f-83ae-f058dfa7b49d", "level": "running", "agent": "intake", "message": "agent \u2192 running", "attempts": 1, "error": null}
+{"ts": "2026-05-01T07:19:12.066976+00:00", "run_id": "b9562625-0712-4a5f-83ae-f058dfa7b49d", "level": "warn", "agent": "orchestrator", "message": "pipeline paused \u2014 intake awaiting user input"}

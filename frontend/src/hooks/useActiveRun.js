@@ -6,13 +6,16 @@ const TERMINAL_STATES = new Set(["completed", "failed"]);
 
 const isTerminal = (status) => TERMINAL_STATES.has(status);
 
+/** Single fetch cycle — returns true when polling should stop. */
+const pollOnce = async (runId, apply) => {
+  const data = await fetchRun(runId);
+  apply(data);
+  return isTerminal(data.run?.status);
+};
+
 /**
- * Polls /api/runs/{runId} while the run is active and surfaces the latest
- * RunState + events array. Stops polling once the run reaches a terminal
- * state (completed | failed).
- *
- * The effect depends on `runId` only — `timerRef` is a ref (stable),
- * and all module-level constants never change at runtime.
+ * Polls /api/runs/{runId} while the run is active. Stops once the run
+ * reaches a terminal state (completed | failed). Depends only on `runId`.
  */
 export function useActiveRun(runId) {
   const [run, setRun] = useState(null);
@@ -35,33 +38,32 @@ export function useActiveRun(runId) {
     };
 
     if (!runId) {
-      clearTimer();
       return () => {
         mountedRef.current = false;
         clearTimer();
       };
     }
 
-    const tick = async () => {
+    const apply = (data) => {
+      if (!mountedRef.current) return;
+      setRun(data.run);
+      setEvents(data.events || []);
+    };
+
+    const loop = async () => {
       try {
-        const data = await fetchRun(runId);
-        if (!mountedRef.current) return;
-        setRun(data.run);
-        setEvents(data.events || []);
-        if (isTerminal(data.run?.status)) {
-          clearTimer();
-          return;
-        }
+        const stop = await pollOnce(runId, apply);
+        if (stop) return clearTimer();
       } catch (e) {
         if (!mountedRef.current) return;
         setError(e?.message || String(e));
       }
       if (mountedRef.current) {
-        timerRef.current = setTimeout(tick, RUN_POLL_INTERVAL_MS);
+        timerRef.current = setTimeout(loop, RUN_POLL_INTERVAL_MS);
       }
     };
 
-    tick();
+    loop();
 
     return () => {
       mountedRef.current = false;

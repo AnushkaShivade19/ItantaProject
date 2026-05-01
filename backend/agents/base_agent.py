@@ -1,7 +1,7 @@
 """
 BaseAgent — shared contract + Groq async helper.
 
-Concrete agents inherit from this and call ``self.call_groq(...)``
+Concrete agents inherit from this and call ``self.call_groq_json(...)``
 to get JSON-structured responses. Retry/back-off lives in the
 orchestrator; this class stays focused on the single call.
 """
@@ -55,6 +55,37 @@ class BaseAgent(ABC):
             self._client = AsyncGroq(api_key=self._api_key, timeout=self.timeout_seconds)
         return self._client
 
+    # ---------------- Groq call helpers ----------------
+    def _build_messages(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        extra_messages: list[dict[str, str]] | None,
+    ) -> list[dict[str, str]]:
+        messages: list[dict[str, str]] = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
+        if extra_messages:
+            messages.extend(extra_messages)
+        return messages
+
+    def _parse_json_or_raise(self, run_id: str, content: str) -> dict[str, Any]:
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError as exc:
+            self.log(run_id, f"groq returned invalid JSON: {exc}",
+                     level="error", raw_preview=content[:200])
+            raise RuntimeError(f"invalid JSON from {self.model}: {exc}") from exc
+
+    def _log_usage(self, run_id: str, response: Any) -> None:
+        usage = getattr(response, "usage", None)
+        if usage is None:
+            return
+        self.log(run_id, "groq ok",
+                 prompt_tokens=usage.prompt_tokens,
+                 completion_tokens=usage.completion_tokens)
+
     async def call_groq_json(
         self,
         run_id: str,
@@ -68,13 +99,7 @@ class BaseAgent(ABC):
         HTTP call fails — the orchestrator catches these as agent errors.
         """
         self.require_key(run_id)
-        messages: list[dict[str, str]] = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ]
-        if extra_messages:
-            messages.extend(extra_messages)
-
+        messages = self._build_messages(system_prompt, user_prompt, extra_messages)
         self.log(run_id, f"groq call · model={self.model} temp={self.temperature}")
         client = self._groq_client()
         response = await client.chat.completions.create(
@@ -85,15 +110,6 @@ class BaseAgent(ABC):
             response_format={"type": "json_object"},
         )
         content = response.choices[0].message.content or "{}"
-        try:
-            parsed: dict[str, Any] = json.loads(content)
-        except json.JSONDecodeError as exc:
-            self.log(run_id, f"groq returned invalid JSON: {exc}",
-                     level="error", raw_preview=content[:200])
-            raise RuntimeError(f"invalid JSON from {self.model}: {exc}") from exc
-        usage = getattr(response, "usage", None)
-        if usage is not None:
-            self.log(run_id, "groq ok",
-                     prompt_tokens=usage.prompt_tokens,
-                     completion_tokens=usage.completion_tokens)
+        parsed = self._parse_json_or_raise(run_id, content)
+        self._log_usage(run_id, response)
         return parsed

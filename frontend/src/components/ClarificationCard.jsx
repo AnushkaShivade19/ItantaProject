@@ -1,9 +1,12 @@
-import { useMemo, useState } from "react";
-import { Question, PaperPlaneRight, Spinner } from "@phosphor-icons/react";
+import { useState } from "react";
+import { PaperPlaneRight, Question, Spinner } from "@phosphor-icons/react";
 import { answerRun } from "../lib/api";
 
 const allAnswered = (questions, answers) =>
   questions.every((q) => (answers[q.id] || "").trim().length > 0);
+
+const extractErrorMessage = (err) =>
+  err?.response?.data?.detail || err?.message || "failed to send";
 
 function ClarifyHeader({ reasoning, count }) {
   return (
@@ -29,28 +32,39 @@ function ClarifyHeader({ reasoning, count }) {
   );
 }
 
+function OptionButton({ qid, opt, selected, disabled, onPick }) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={() => onPick(opt)}
+      className="text-[12px] font-mono px-2 py-1 rounded-sm transition-colors"
+      style={{
+        background: selected ? "var(--text-primary)" : "var(--surface-elevated)",
+        color: selected ? "var(--brand-fg)" : "var(--text-secondary)",
+        border: "1px solid var(--border)",
+      }}
+      data-testid={`clarify-option-${qid}-${opt}`}
+    >
+      {opt}
+    </button>
+  );
+}
+
 function QuestionOptions({ question, value, onChange, disabled }) {
   const opts = question.options;
-  if (opts && Array.isArray(opts) && opts.length > 0) {
+  if (Array.isArray(opts) && opts.length > 0) {
     return (
       <div className="flex flex-wrap gap-1.5 mt-2">
         {opts.map((opt) => (
-          <button
+          <OptionButton
             key={opt}
-            type="button"
+            qid={question.id}
+            opt={opt}
+            selected={value === opt}
             disabled={disabled}
-            onClick={() => onChange(opt)}
-            className="text-[12px] font-mono px-2 py-1 rounded-sm transition-colors"
-            style={{
-              background:
-                value === opt ? "var(--text-primary)" : "var(--surface-elevated)",
-              color: value === opt ? "var(--brand-fg)" : "var(--text-secondary)",
-              border: "1px solid var(--border)",
-            }}
-            data-testid={`clarify-option-${question.id}-${opt}`}
-          >
-            {opt}
-          </button>
+            onPick={onChange}
+          />
         ))}
       </div>
     );
@@ -91,24 +105,52 @@ function QuestionRow({ question, value, onChange, disabled, index }) {
   );
 }
 
-/**
- * Clarification card — shown whenever `run.status == "awaiting_input"`.
- * Posts the user's answers to POST /api/runs/{id}/answer which resumes
- * the orchestrator with the new context merged into the intake loop.
- */
-export default function ClarificationCard({ run, onResumed }) {
-  const spec = run?.specification || {};
-  const questions = useMemo(
-    () => spec.pending_questions || [],
-    [spec.pending_questions]
+function QuestionList({ questions, answers, onAnswer, disabled }) {
+  return (
+    <div>
+      {questions.map((q, i) => (
+        <QuestionRow
+          key={q.id}
+          question={q}
+          index={i}
+          value={answers[q.id]}
+          onChange={(v) => onAnswer(q.id, v)}
+          disabled={disabled}
+        />
+      ))}
+    </div>
   );
+}
+
+function SubmitButton({ canSubmit, submitting, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={!canSubmit}
+      className="btn-primary mt-4 w-full justify-center"
+      data-testid="clarification-submit-btn"
+    >
+      {submitting ? (
+        <>
+          <Spinner size={14} className="animate-spin" />
+          Resuming pipeline…
+        </>
+      ) : (
+        <>
+          <PaperPlaneRight size={14} weight="fill" />
+          Submit answers · resume
+        </>
+      )}
+    </button>
+  );
+}
+
+/** Local state controller for the clarification form. */
+function useClarificationForm(runId, questions, onResumed) {
   const [answers, setAnswers] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
-
-  if (!run || run.status !== "awaiting_input" || questions.length === 0) {
-    return null;
-  }
 
   const setAnswer = (id, val) =>
     setAnswers((prev) => ({ ...prev, [id]: val }));
@@ -123,15 +165,31 @@ export default function ClarificationCard({ run, onResumed }) {
         question: q.text,
         answer: answers[q.id],
       }));
-      await answerRun(run.id, payload);
+      await answerRun(runId, payload);
       setAnswers({});
       onResumed?.();
     } catch (e) {
-      setError(e?.response?.data?.detail || e?.message || "failed to send");
+      setError(extractErrorMessage(e));
     } finally {
       setSubmitting(false);
     }
   };
+
+  return { answers, setAnswer, submit, submitting, error };
+}
+
+/**
+ * Clarification card — shown whenever `run.status == "awaiting_input"`.
+ */
+export default function ClarificationCard({ run, onResumed }) {
+  const spec = run?.specification || {};
+  const questions = spec.pending_questions || [];
+  const { answers, setAnswer, submit, submitting, error } =
+    useClarificationForm(run?.id, questions, onResumed);
+
+  if (!run || run.status !== "awaiting_input" || questions.length === 0) {
+    return null;
+  }
 
   const canSubmit = !submitting && allAnswered(questions, answers);
 
@@ -142,20 +200,12 @@ export default function ClarificationCard({ run, onResumed }) {
       style={{ borderColor: "rgba(255, 176, 0, 0.4)" }}
     >
       <ClarifyHeader reasoning={spec.reasoning} count={questions.length} />
-
-      <div>
-        {questions.map((q, i) => (
-          <QuestionRow
-            key={q.id}
-            question={q}
-            index={i}
-            value={answers[q.id]}
-            onChange={(v) => setAnswer(q.id, v)}
-            disabled={submitting}
-          />
-        ))}
-      </div>
-
+      <QuestionList
+        questions={questions}
+        answers={answers}
+        onAnswer={setAnswer}
+        disabled={submitting}
+      />
       {error && (
         <div
           className="mt-3 text-xs font-mono"
@@ -165,26 +215,11 @@ export default function ClarificationCard({ run, onResumed }) {
           × {error}
         </div>
       )}
-
-      <button
-        type="button"
+      <SubmitButton
+        canSubmit={canSubmit}
+        submitting={submitting}
         onClick={submit}
-        disabled={!canSubmit}
-        className="btn-primary mt-4 w-full justify-center"
-        data-testid="clarification-submit-btn"
-      >
-        {submitting ? (
-          <>
-            <Spinner size={14} className="animate-spin" />
-            Resuming pipeline…
-          </>
-        ) : (
-          <>
-            <PaperPlaneRight size={14} weight="fill" />
-            Submit answers · resume
-          </>
-        )}
-      </button>
+      />
     </section>
   );
 }

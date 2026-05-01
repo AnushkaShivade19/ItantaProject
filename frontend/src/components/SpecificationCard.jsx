@@ -1,4 +1,10 @@
-import { FileText, ListBullets, Wall, CheckSquare, Stack } from "@phosphor-icons/react";
+import {
+  FileText,
+  ListBullets,
+  Wall,
+  CheckSquare,
+  Stack,
+} from "@phosphor-icons/react";
 
 const isReady = (spec) => spec && spec.mode === "spec" && spec.project_name;
 
@@ -22,8 +28,11 @@ function BulletList({ items, testId }) {
   }
   return (
     <ul className="space-y-1" data-testid={testId}>
-      {items.map((item, i) => (
-        <li key={`${testId}-${i}`} className="text-[13px] text-secondary-ink leading-snug flex gap-2">
+      {items.map((item) => (
+        <li
+          key={`${testId}-${item}`}
+          className="text-[13px] text-secondary-ink leading-snug flex gap-2"
+        >
           <span className="text-muted-ink font-mono shrink-0">·</span>
           <span>{item}</span>
         </li>
@@ -54,9 +63,64 @@ function TechStack({ stack }) {
   );
 }
 
+function SpecCardHeader({ spec }) {
+  return (
+    <div className="flex items-start justify-between mb-3 gap-3">
+      <div>
+        <div className="overline mb-1 flex items-center gap-1">
+          <FileText size={10} weight="fill" color="var(--state-success)" />
+          specification · ready
+        </div>
+        <h3 className="font-heading text-lg font-medium">
+          {spec.project_name}
+        </h3>
+        {spec.description && (
+          <p className="text-[12px] text-secondary-ink mt-1 leading-relaxed">
+            {spec.description}
+          </p>
+        )}
+      </div>
+      <span className="text-[10px] font-mono text-muted-ink whitespace-nowrap">
+        intake · v1
+      </span>
+    </div>
+  );
+}
+
+function ClarificationsSection({ clarifications }) {
+  if (!clarifications || clarifications.length === 0) return null;
+  return (
+    <div>
+      <SectionHeading
+        Icon={FileText}
+        label="clarifications"
+        count={clarifications.length}
+      />
+      <div className="space-y-2">
+        {clarifications.map((c) => (
+          <div key={c.id || c.question} className="text-[12px]">
+            <div className="text-muted-ink font-mono">Q: {c.question}</div>
+            <div className="text-primary-ink">A: {c.answer}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ConstraintsSection({ constraints }) {
+  if (!constraints || constraints.length === 0) return null;
+  return (
+    <div>
+      <SectionHeading Icon={Wall} label="constraints" count={constraints.length} />
+      <BulletList items={constraints} testId="spec-constraints" />
+    </div>
+  );
+}
+
 /**
  * Renders the final structured specification emitted by the Intake
- * Agent (mode: "spec"). Stays hidden until the spec is ready.
+ * Agent. Hidden until the spec is ready.
  */
 export default function SpecificationCard({ run }) {
   const spec = run?.specification;
@@ -68,25 +132,7 @@ export default function SpecificationCard({ run }) {
       data-testid="specification-card"
       style={{ borderColor: "rgba(16, 185, 129, 0.3)" }}
     >
-      <div className="flex items-start justify-between mb-3 gap-3">
-        <div>
-          <div className="overline mb-1 flex items-center gap-1">
-            <FileText size={10} weight="fill" color="var(--state-success)" />
-            specification · ready
-          </div>
-          <h3 className="font-heading text-lg font-medium">
-            {spec.project_name}
-          </h3>
-          {spec.description && (
-            <p className="text-[12px] text-secondary-ink mt-1 leading-relaxed">
-              {spec.description}
-            </p>
-          )}
-        </div>
-        <span className="text-[10px] font-mono text-muted-ink whitespace-nowrap">
-          intake · v1
-        </span>
-      </div>
+      <SpecCardHeader spec={spec} />
 
       <div className="mt-4 space-y-4">
         <div>
@@ -103,16 +149,7 @@ export default function SpecificationCard({ run }) {
           <BulletList items={spec.features} testId="spec-features" />
         </div>
 
-        {spec.constraints?.length > 0 && (
-          <div>
-            <SectionHeading
-              Icon={Wall}
-              label="constraints"
-              count={spec.constraints.length}
-            />
-            <BulletList items={spec.constraints} testId="spec-constraints" />
-          </div>
-        )}
+        <ConstraintsSection constraints={spec.constraints} />
 
         <div>
           <SectionHeading
@@ -126,23 +163,7 @@ export default function SpecificationCard({ run }) {
           />
         </div>
 
-        {spec.clarifications?.length > 0 && (
-          <div>
-            <SectionHeading
-              Icon={FileText}
-              label="clarifications"
-              count={spec.clarifications.length}
-            />
-            <div className="space-y-2">
-              {spec.clarifications.map((c, i) => (
-                <div key={i} className="text-[12px]">
-                  <div className="text-muted-ink font-mono">Q: {c.question}</div>
-                  <div className="text-primary-ink">A: {c.answer}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        <ClarificationsSection clarifications={spec.clarifications} />
       </div>
     </section>
   );

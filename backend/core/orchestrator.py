@@ -28,6 +28,11 @@ AGENT_IMPORT_PATHS: dict[str, tuple[str, str]] = {
 
 TERMINAL_AGENT_STATES = {AgentStatus.success, AgentStatus.skipped}
 
+# Orchestrator per-step decision signals.
+_CONTINUE = "continue"
+_PAUSE = "pause"
+_STOP = "stop"
+
 
 class Orchestrator:
     """High-level controller for a framework run."""
@@ -72,10 +77,7 @@ class Orchestrator:
 
     # ------------- main entrypoint -------------
     async def run(self, run_id: str) -> RunState:
-        run = self.state.get(run_id)
-        if run is None:
-            raise ValueError(f"unknown run_id={run_id}")
-
+        self._require_run(run_id)  # validate exists; raises if not
         self.state.update_run(run_id, status=RunStatus.running)
         event(run_id, "info", "orchestrator",
               f"pipeline start · {len(self.pipeline)} agents",
@@ -85,41 +87,63 @@ class Orchestrator:
         hard_fail_after = self._retry_policy()["hard_fail_after"]
 
         for agent_name in self.pipeline:
-            run = self.state.get(run_id)
-            if run is None:
-                return run  # type: ignore[return-value]
-
-            if run.agents[agent_name].status in TERMINAL_AGENT_STATES:
-                event(run_id, "info", "orchestrator",
-                      f"skip {agent_name} · already {run.agents[agent_name].status.value}")
-                continue
-
-            retries_used = await self._run_agent_step(run_id, agent_name)
-            total_retries += retries_used
-
-            run = self.state.get(run_id)
-            if run is None:
-                return run  # type: ignore[return-value]
-
-            if run.status == RunStatus.awaiting_input:
-                event(run_id, "warn", "orchestrator",
-                      f"pipeline paused — {agent_name} awaiting user input")
-                return run
-            if run.status == RunStatus.failed:
-                break
-            if total_retries >= hard_fail_after:
-                event(run_id, "error", "orchestrator",
-                      f"hard_fail_after={hard_fail_after} retries exceeded — aborting",
-                      total_retries=total_retries)
-                self.state.update_run(run_id, status=RunStatus.failed)
+            decision, total_retries = await self._step(
+                run_id, agent_name, total_retries, hard_fail_after
+            )
+            if decision == _PAUSE:
+                return self._require_run(run_id)
+            if decision == _STOP:
                 break
 
+        return self._finalize(run_id, total_retries)
+
+    # ------------- per-step dispatcher -------------
+    async def _step(
+        self,
+        run_id: str,
+        agent_name: str,
+        total_retries: int,
+        hard_fail_after: int,
+    ) -> tuple[str, int]:
+        """Run one agent and decide what to do next."""
+        run = self._require_run(run_id)
+        if run.agents[agent_name].status in TERMINAL_AGENT_STATES:
+            event(run_id, "info", "orchestrator",
+                  f"skip {agent_name} · already {run.agents[agent_name].status.value}")
+            return _CONTINUE, total_retries
+
+        retries_used = await self._run_agent_step(run_id, agent_name)
+        total_retries += retries_used
+        run = self._require_run(run_id)
+
+        if run.status == RunStatus.awaiting_input:
+            event(run_id, "warn", "orchestrator",
+                  f"pipeline paused — {agent_name} awaiting user input")
+            return _PAUSE, total_retries
+        if run.status == RunStatus.failed:
+            return _STOP, total_retries
+        if total_retries >= hard_fail_after:
+            event(run_id, "error", "orchestrator",
+                  f"hard_fail_after={hard_fail_after} retries exceeded — aborting",
+                  total_retries=total_retries)
+            self.state.update_run(run_id, status=RunStatus.failed)
+            return _STOP, total_retries
+        return _CONTINUE, total_retries
+
+    # ------------- finalisation -------------
+    def _finalize(self, run_id: str, total_retries: int) -> RunState:
         run = self.state.get(run_id)
         if run is not None and run.status == RunStatus.running:
             self.state.update_run(run_id, status=RunStatus.completed)
             event(run_id, "success", "orchestrator",
                   "pipeline complete", total_retries=total_retries)
-        return run  # type: ignore[return-value]
+        return self._require_run(run_id)
+
+    def _require_run(self, run_id: str) -> RunState:
+        run = self.state.get(run_id)
+        if run is None:
+            raise ValueError(f"unknown run_id={run_id}")
+        return run
 
     # ------------- per-agent step with retry -------------
     async def _run_agent_step(self, run_id: str, agent_name: str) -> int:
@@ -134,42 +158,61 @@ class Orchestrator:
                 agent = self._get_agent(agent_name)
                 result = await agent.execute(run_id)
             except NotImplementedError:
-                self.state.mark_agent(
-                    run_id, agent_name, AgentStatus.skipped,
-                    attempts=attempt,
-                    output_summary="dry-run · agent body arrives in a later phase",
-                )
-                event(run_id, "warn", agent_name,
-                      "skipped (NotImplementedError) — dry-run")
-                return 0
+                return self._mark_skipped(run_id, agent_name, attempt)
             except Exception as exc:  # noqa: BLE001
-                event(run_id, "error", agent_name,
-                      f"attempt {attempt}/{max_attempts} failed: {exc}",
-                      error=str(exc))
-                self.state.mark_agent(run_id, agent_name, AgentStatus.error,
-                                      attempts=attempt, last_error=str(exc))
-                if attempt >= max_attempts:
-                    event(run_id, "error", "orchestrator",
-                          f"{agent_name} exhausted retries — marking run failed")
-                    self.state.update_run(run_id, status=RunStatus.failed)
+                if self._handle_failure(run_id, agent_name, attempt, max_attempts, exc):
                     return attempt
                 await asyncio.sleep(backoff)
                 continue
-
-            # ---- success path ----
-            summary = _extract_summary(result)
-            if isinstance(result, dict) and result.get("mode") == "awaiting_input":
-                # Agent flipped run.status — keep agent running-shaped so the
-                # dashboard shows "in-progress, waiting on you" and we'll
-                # re-enter this exact step on resume.
-                self.state.mark_agent(run_id, agent_name, AgentStatus.running,
-                                      attempts=attempt, output_summary=summary)
-                return attempt - 1
-            self.state.mark_agent(run_id, agent_name, AgentStatus.success,
-                                  attempts=attempt, output_summary=summary)
-            return attempt - 1
+            return self._mark_success_or_waiting(run_id, agent_name, attempt, result)
 
         return max_attempts
+
+    # ---- outcome helpers ----
+    def _mark_skipped(self, run_id: str, agent_name: str, attempt: int) -> int:
+        self.state.mark_agent(
+            run_id, agent_name, AgentStatus.skipped,
+            attempts=attempt,
+            output_summary="dry-run · agent body arrives in a later phase",
+        )
+        event(run_id, "warn", agent_name, "skipped (NotImplementedError) — dry-run")
+        return 0
+
+    def _handle_failure(
+        self,
+        run_id: str,
+        agent_name: str,
+        attempt: int,
+        max_attempts: int,
+        exc: BaseException,
+    ) -> bool:
+        """Record the failure. Return True if retries are exhausted."""
+        event(run_id, "error", agent_name,
+              f"attempt {attempt}/{max_attempts} failed: {exc}",
+              error=str(exc))
+        self.state.mark_agent(run_id, agent_name, AgentStatus.error,
+                              attempts=attempt, last_error=str(exc))
+        if attempt >= max_attempts:
+            event(run_id, "error", "orchestrator",
+                  f"{agent_name} exhausted retries — marking run failed")
+            self.state.update_run(run_id, status=RunStatus.failed)
+            return True
+        return False
+
+    def _mark_success_or_waiting(
+        self, run_id: str, agent_name: str, attempt: int, result: Any,
+    ) -> int:
+        summary = _extract_summary(result)
+        is_awaiting = isinstance(result, dict) and result.get("mode") == "awaiting_input"
+        if is_awaiting:
+            # Keep agent in `running` shape — re-entry after the user answers
+            # will run this exact step again with new context.
+            self.state.mark_agent(run_id, agent_name, AgentStatus.running,
+                                  attempts=attempt, output_summary=summary)
+        else:
+            self.state.mark_agent(run_id, agent_name, AgentStatus.success,
+                                  attempts=attempt, output_summary=summary)
+        return attempt - 1
 
 
 def _extract_summary(result: Any) -> str:

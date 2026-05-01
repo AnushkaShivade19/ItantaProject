@@ -23,14 +23,53 @@ const appendCapped = (prev, entry) => {
   return next.length > MAX_LOG_LINES ? next.slice(-MAX_LOG_LINES) : next;
 };
 
+/** Load all static dashboard data in one shot. */
+const loadDashboardData = () =>
+  Promise.all([
+    fetchHealth(),
+    fetchConfig(),
+    fetchPipeline(),
+    fetchAgents(),
+    fetchPhases(),
+  ]).then(([health, config, pipeline, agents, phases]) => ({
+    health,
+    config,
+    pipeline,
+    agents,
+    phases,
+  }));
+
+/** Apply a successful boot payload to state setters. */
+const applyBoot = (payload, setters, addLog) => {
+  setters.setHealth(payload.health);
+  setters.setConfig(payload.config);
+  setters.setPipeline(payload.pipeline);
+  setters.setAgents(payload.agents);
+  setters.setPhases(payload.phases);
+  addLog(
+    `health=${payload.health.status} v${payload.health.version}`,
+    "success",
+    "health"
+  );
+  addLog(
+    payload.health.groq_key_configured
+      ? "groq key configured"
+      : "groq key missing — add to backend/.env",
+    payload.health.groq_key_configured ? "success" : "warn",
+    "groq"
+  );
+  addLog(
+    `loaded ${payload.pipeline.length} agents · ${payload.phases.length} phases`,
+    "info",
+    "orchestrator"
+  );
+  addLog("scaffold ready", "running", "phase");
+};
+
 /**
  * Boots the dashboard: loads static metadata once, then polls health
  * on a fixed interval. Exposes a capped log buffer with a stable
  * `addLog` reference.
- *
- * Effect runs exactly once on mount — `addLog` is stable (useCallback
- * with empty deps) and the interval depends only on a module-level
- * constant, so no hidden deps to track.
  */
 export function useAgenticBoot() {
   const [health, setHealth] = useState(null);
@@ -42,8 +81,8 @@ export function useAgenticBoot() {
   const [error, setError] = useState(null);
   const mountedRef = useRef(true);
 
-  // Parameters (msg/level/agent) can never be React deps. setLogs and
-  // the module-level helpers are stable. Empty deps is correct here.
+  // Params can never be React deps; all other closure values are
+  // module-level and stable. Empty deps is correct here.
   const addLog = useCallback((msg, level = "info", agent = "system") => {
     setLogs((prev) => appendCapped(prev, makeLogEntry(msg, level, agent)));
   }, []);
@@ -52,43 +91,17 @@ export function useAgenticBoot() {
     mountedRef.current = true;
     addLog("bootstrapping dashboard ...", "info", "ui");
 
-    const runBoot = async () => {
-      try {
-        const [h, c, p, a, ph] = await Promise.all([
-          fetchHealth(),
-          fetchConfig(),
-          fetchPipeline(),
-          fetchAgents(),
-          fetchPhases(),
-        ]);
+    const setters = { setHealth, setConfig, setPipeline, setAgents, setPhases };
+    loadDashboardData()
+      .then((payload) => {
         if (!mountedRef.current) return;
-        setHealth(h);
-        setConfig(c);
-        setPipeline(p);
-        setAgents(a);
-        setPhases(ph);
-        addLog(`health=${h.status} v${h.version}`, "success", "health");
-        addLog(
-          h.groq_key_configured
-            ? "groq key configured"
-            : "groq key missing — add to backend/.env",
-          h.groq_key_configured ? "success" : "warn",
-          "groq"
-        );
-        addLog(
-          `loaded ${p.length} agents · ${ph.length} phases`,
-          "info",
-          "orchestrator"
-        );
-        addLog("scaffold ready", "running", "phase");
-      } catch (e) {
+        applyBoot(payload, setters, addLog);
+      })
+      .catch((e) => {
         if (!mountedRef.current) return;
         setError(String(e));
         addLog(`bootstrap failed: ${e.message}`, "error", "ui");
-      }
-    };
-
-    runBoot();
+      });
 
     const refreshHealth = async () => {
       try {
