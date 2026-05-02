@@ -15,6 +15,7 @@ from typing import Any
 import yaml
 from dotenv import load_dotenv
 from fastapi import APIRouter, BackgroundTasks, FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, ConfigDict
 from starlette.middleware.cors import CORSMiddleware
@@ -253,6 +254,49 @@ async def get_run_file(run_id: str, path: str) -> FileContentResponse:
     return FileContentResponse(path=str(target.relative_to(ROOT_DIR.parent)),
                                bytes=len(text), content=text)
 
+
+@api_router.get("/runs/{run_id}/preview/{path:path}")
+async def preview_run_file(run_id: str, path: str) -> FileResponse:
+    """Serve raw static files for live preview."""
+    run = state_manager.get(run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="run not found")
+    
+    # Constrain access to this run's output directory only.
+    base = (OUTPUT_ROOT / run_id).resolve()
+    target = (ROOT_DIR / path).resolve() if path.startswith("output_projects") \
+        else (base / path).resolve()
+        
+    if not str(target).startswith(str(base)):
+        raise HTTPException(status_code=400, detail="path outside run sandbox")
+    if not target.is_file():
+        raise HTTPException(status_code=404, detail="file not found")
+        
+    return FileResponse(target)
+
+
+class AllFilesResponse(BaseModel):
+    files: dict[str, str]
+
+@api_router.get("/runs/{run_id}/files/all", response_model=AllFilesResponse)
+async def get_all_run_files(run_id: str) -> AllFilesResponse:
+    """Return all generated text files as a dictionary for Sandpack."""
+    run = state_manager.get(run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="run not found")
+        
+    base = (OUTPUT_ROOT / run_id).resolve()
+    files_dict = {}
+    if base.exists():
+        for p in base.rglob("*"):
+            if p.is_file() and not p.name.startswith("."):
+                try:
+                    rel = p.relative_to(base)
+                    files_dict[str(rel).replace("\\", "/")] = p.read_text(encoding="utf-8")
+                except UnicodeDecodeError:
+                    pass # Skip binary files like images
+                    
+    return AllFilesResponse(files=files_dict)
 
 @api_router.post("/runs/{run_id}/answer", response_model=AnswerRunResponse)
 async def answer_run(

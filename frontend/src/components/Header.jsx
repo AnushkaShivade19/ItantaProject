@@ -13,9 +13,9 @@ function Brand() {
       </div>
       <div className="flex items-baseline gap-3">
         <span className="font-heading font-medium tracking-tight text-[15px]">
-          agentic.dev
+          Skynet
         </span>
-        <span className="overline">Software Generation Framework</span>
+        <span className="overline">Autonomous AI Software Generator</span>
       </div>
     </div>
   );

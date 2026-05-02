@@ -9,6 +9,7 @@ import {
   Gear,
   FolderOpen,
   ClockCounterClockwise,
+  Desktop
 } from "@phosphor-icons/react";
 import {
   NAV_ICON_SIZE,
@@ -17,51 +18,39 @@ import {
 } from "../lib/constants";
 
 const NAV_ITEMS = [
-  { id: "dashboard", label: "Pipeline", icon: Cube },
+  { id: "dashboard", label: "Dashboard", icon: Cube },
   { id: "runs", label: "Runs", icon: ClockCounterClockwise },
   { id: "projects", label: "Projects", icon: FolderOpen },
   { id: "config", label: "Config", icon: Gear },
 ];
 
 const AGENT_ITEMS = [
-  { id: "intake", label: "Intake", icon: GitBranch },
+  { id: "intake", label: "Intake Pipeline", icon: GitBranch },
   { id: "architect", label: "Architect", icon: Cube },
   { id: "planner", label: "Planner", icon: ListChecks },
   { id: "qa", label: "QA · TDD", icon: TestTube },
   { id: "coder", label: "Coder", icon: FileCode },
   { id: "validator", label: "Validator", icon: ShieldCheck },
+  { id: "preview", label: "Live Preview", icon: Desktop },
   { id: "recovery", label: "Recovery", icon: Lifebuoy },
 ];
 
-function NavButton({ item, active, onSelect }) {
+function NavButton({ item, active, onSelect, iconSize = NAV_ICON_SIZE }) {
   const Icon = item.icon;
   const isActive = active === item.id;
   return (
     <button
       data-testid={`nav-${item.id}`}
       onClick={() => onSelect?.(item.id)}
-      className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-sm transition-colors"
+      className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-sm transition-colors text-left"
       style={{
         background: isActive ? "var(--surface-elevated)" : "transparent",
         color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
       }}
     >
-      <Icon size={NAV_ICON_SIZE} weight={isActive ? "fill" : "regular"} />
+      <Icon size={iconSize} weight={isActive ? "fill" : "regular"} />
       {item.label}
     </button>
-  );
-}
-
-function AgentRow({ item }) {
-  const Icon = item.icon;
-  return (
-    <li
-      className="flex items-center gap-2 px-2 py-1 text-[13px] text-secondary-ink"
-      data-testid={`sidebar-agent-${item.id}`}
-    >
-      <Icon size={SIDEBAR_ICON_SIZE} />
-      <span>{item.label}</span>
-    </li>
   );
 }
 
@@ -100,10 +89,12 @@ export default function Sidebar({ active = "dashboard", onSelect }) {
       </div>
 
       <div className="mt-2 p-4 border-t" style={{ borderColor: "var(--border)" }}>
-        <div className="overline mb-3">agents</div>
+        <div className="overline mb-3">pipeline</div>
         <ul className="space-y-0.5">
           {AGENT_ITEMS.map((item) => (
-            <AgentRow key={item.id} item={item} />
+            <li key={item.id}>
+              <NavButton item={item} active={active} onSelect={onSelect} iconSize={SIDEBAR_ICON_SIZE} />
+            </li>
           ))}
         </ul>
       </div>

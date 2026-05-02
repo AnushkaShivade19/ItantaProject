@@ -13,6 +13,7 @@ import ArchitectureCard from "./components/ArchitectureCard";
 import TaskListCard from "./components/TaskListCard";
 import TestSuiteCard from "./components/TestSuiteCard";
 import CodeFilesCard from "./components/CodeFilesCard";
+import LivePreviewCard from "./components/LivePreviewCard";
 import { useAgenticBoot } from "./hooks/useAgenticBoot";
 import { useActiveRun } from "./hooks/useActiveRun";
 import { EVENT_LEVEL_TO_LOG_LEVEL } from "./lib/constants";
@@ -62,39 +63,43 @@ function ErrorBanner({ error }) {
 function DashboardFooter({ phaseStatus }) {
   return (
     <footer className="pt-4 pb-8 text-[11px] font-mono text-muted-ink flex items-center justify-between">
-      <div>agentic.dev · FastAPI + Groq</div>
+      <div>Skynet · FastAPI + Groq</div>
       <div>{phaseStatus}</div>
     </footer>
   );
 }
 
-function MainColumn({ pipeline, statuses, activeRun, config, agents }) {
-  return (
-    <div className="xl:col-span-2 space-y-6">
-      <AgentPipeline pipeline={pipeline} statuses={statuses} />
-      <SpecificationCard run={activeRun} />
-      <ArchitectureCard run={activeRun} />
-      <TaskListCard run={activeRun} />
-      <TestSuiteCard run={activeRun} />
-      <CodeFilesCard run={activeRun} />
-      {config && <ConfigPanel config={config} agents={agents} />}
-    </div>
-  );
-}
+function AppContent({ nav, activeRun, busy, onRunStarted, onResumed, logs, pipeline, statuses, config, agents }) {
+  // If we are on the default dashboard or intake, show the centered Launch Pipeline UX
+  if (nav === "dashboard" || nav === "intake") {
+    return (
+      <div className="max-w-4xl mx-auto space-y-8 mt-10">
+        <AgentPipeline pipeline={pipeline} statuses={statuses} />
+        <SpecEditor onRunStarted={onRunStarted} busy={busy} />
+        <RunSummary run={activeRun} />
+        <ClarificationCard run={activeRun} onResumed={onResumed} />
+      </div>
+    );
+  }
 
-function SideColumn({ activeRun, onRunStarted, onResumed, busy, logs }) {
+  // Handle specific agent tabs using full width
+  if (nav === "architect") return <div className="max-w-6xl mx-auto"><ArchitectureCard run={activeRun} /></div>;
+  if (nav === "planner") return <div className="max-w-6xl mx-auto space-y-6"><SpecificationCard run={activeRun} /><TaskListCard run={activeRun} /></div>;
+  if (nav === "qa") return <div className="max-w-6xl mx-auto"><TestSuiteCard run={activeRun} /></div>;
+  if (nav === "coder") return <div className="max-w-6xl mx-auto"><CodeFilesCard run={activeRun} /></div>;
+  if (nav === "preview") return <div className="max-w-6xl mx-auto"><LivePreviewCard run={activeRun} /></div>;
+  
+  if (nav === "config") return <div className="max-w-6xl mx-auto">{config && <ConfigPanel config={config} agents={agents} />}</div>;
+
   return (
-    <div className="space-y-6">
-      <RunSummary run={activeRun} />
-      <ClarificationCard run={activeRun} onResumed={onResumed} />
-      <SpecEditor onRunStarted={onRunStarted} busy={busy} />
-      <LogTerminal lines={logs} />
+    <div className="flex items-center justify-center h-64 text-muted-ink">
+      <p>Select a tab from the sidebar to view its content.</p>
     </div>
   );
 }
 
 export default function App() {
-  const [nav, setNav] = useState("dashboard");
+  const [nav, setNav] = useState("intake");
   const [activeRunId, setActiveRunId] = useState(null);
   const { health, config, pipeline, agents, phases, logs, error } =
     useAgenticBoot();
@@ -116,26 +121,23 @@ export default function App() {
       <Header health={health} />
       <div className="flex">
         <Sidebar active={nav} onSelect={setNav} />
-        <main className="flex-1 p-4 md:p-6 space-y-6 relative">
-          <ErrorBanner error={error || runError} />
-          <PhaseBanner phases={phases} />
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-            <MainColumn
-              pipeline={pipeline}
-              statuses={statuses}
-              activeRun={activeRun}
-              config={config}
-              agents={agents}
-            />
-            <SideColumn
-              activeRun={activeRun}
-              onRunStarted={handleRunStarted}
-              onResumed={handleResumed}
-              busy={busy}
-              logs={mergedLogs}
-            />
+        <main className="flex-1 p-4 md:p-8 relative overflow-y-auto h-[calc(100vh-3.5rem)]">
+          <AppContent 
+            nav={nav} 
+            activeRun={activeRun} 
+            busy={busy} 
+            onRunStarted={handleRunStarted} 
+            onResumed={handleResumed} 
+            logs={mergedLogs} 
+            pipeline={pipeline} 
+            statuses={statuses}
+            config={config}
+            agents={agents}
+          />
+          
+          <div className="mt-16">
+            <DashboardFooter phaseStatus={phaseStatus} />
           </div>
-          <DashboardFooter phaseStatus={phaseStatus} />
         </main>
       </div>
     </div>

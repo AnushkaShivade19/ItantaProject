@@ -27,29 +27,27 @@ OUTPUT_ROOT = Path(__file__).parent.parent / "output_projects"
 SYSTEM_PROMPT = """You are the QA Agent in an autonomous TDD-first AI software-generation pipeline.
 
 You receive ONE task from the planner plus the project architecture context.
-Your job: write a pytest test file that tests the task's behaviour BEFORE
-any implementation exists. The tests MUST fail (because the imports / code
-do not yet exist), but they must be runnable, well-formed pytest.
+Your job: write a test file that tests the task's behaviour BEFORE any implementation exists.
+
+LANGUAGE AWARENESS:
+- If the task is targeting Python files (.py), write a `pytest` test file.
+- If the task is targeting Javascript/React files (.js, .jsx), write a `Jest` test file (using React Testing Library if appropriate).
 
 Required JSON shape — return ONLY this object:
 {
-  "filename": "test_<task-id>.py",
-  "imports": ["from <module> import <symbol>", ...],
-  "code": "<complete pytest file content as a single string>",
+  "filename": "<test_filename>",
+  "imports": ["<import statement 1>", ...],
+  "code": "<complete test file content as a single string. THIS MUST NOT BE EMPTY!>",
   "rationale": "<1 sentence describing what's being verified>"
 }
 
 Rules for the `code` string:
-- Real, complete, importable Python. Include `import pytest` and any other
-  needed imports. Imports should reference the files listed under the task
-  (the modules the Coder agent will create).
-- Define 2-4 test functions named `test_<behaviour>(...)`.
-- Cover the `test_focus` thoroughly — happy path AND at least one edge case.
-- Mock external dependencies (DB, network) with pytest fixtures where
-  appropriate. Use `unittest.mock` (no extra packages).
-- Add a brief module docstring at the top describing what's being tested.
-- NEVER include any code outside test functions/fixtures (no implementation).
-- Tests are EXPECTED to fail initially with ImportError or AssertionError.
+- `filename`: MUST be `test_<task-id>.py` for Python, or `<task-id>.test.js` for Javascript.
+- IMPORTANT: The `code` field MUST contain the actual test code. NEVER return an empty string.
+- Real, complete, importable code. Imports should reference the files listed under the task.
+- Define 2-4 test cases thoroughly covering the `test_focus`.
+- Mock external dependencies where appropriate.
+- Tests are EXPECTED to fail initially because the implementation does not yet exist.
 - NEVER output anything outside the JSON object.
 """
 
@@ -118,7 +116,9 @@ class QAAgent(BaseAgent):
         if not code:
             raise RuntimeError(f"qa: empty code for task {task.id}")
 
-        filename = _safe_filename(task.id, task.title)
+        filename = str(result.get("filename", "")).strip()
+        if not filename:
+            filename = _safe_filename(task.id, task.title)
         path = out_dir / filename
         path.write_text(code, encoding="utf-8")
 

@@ -35,3 +35,6 @@ export const answerRun = (runId, answers) =>
 
 export const fetchRunFile = (runId, path) =>
   api.get(`/runs/${runId}/file`, { params: { path } }).then((r) => r.data);
+
+export const fetchAllRunFiles = (runId) =>
+  api.get(`/runs/${runId}/files/all`).then((r) => r.data);
