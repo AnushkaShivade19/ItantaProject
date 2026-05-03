@@ -88,3 +88,17 @@ credentials.json
 *.pem
 *.key
 .credentials
+# --- Project Specific Overrides ---
+# Ignore local database storage
+mongo_data/
+
+# Ignore backend logs and generated events
+backend/logs/
+backend/output_projects/
+
+# Ignore specific JSONL event logs
+*.jsonl
+
+# Ignore any local build artifacts in the backend
+backend/dist/
+backend/build/
