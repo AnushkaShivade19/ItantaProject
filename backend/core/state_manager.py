@@ -51,7 +51,8 @@ AGENT_ORDER: list[str] = [
     "architect",
     "planner",
     "qa",
-    "coder",
+    "designer",
+    "backend_coder",
     "validator",
     "recovery",
 ]
@@ -182,7 +183,7 @@ class StateManager:
                 setattr(a, k, v)
         self._touch(run_id)
         event(run_id, _event_level(status), agent,
-              f"agent → {status.value}",
+              f"agent -> {status.value}",
               attempts=a.attempts,
               error=a.last_error if status == AgentStatus.error else None)
 
@@ -212,7 +213,7 @@ class StateManager:
                 break
         self._touch(run_id)
         event(run_id, _task_event_level(status), "state",
-              f"task → {status.value}", task_id=task_id)
+              f"task -> {status.value}", task_id=task_id)
 
     def set_task_test_file(self, run_id: str, task_id: str, path: str) -> None:
         run = self._runs[run_id]

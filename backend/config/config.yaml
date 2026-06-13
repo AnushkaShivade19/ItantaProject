@@ -39,11 +39,15 @@ agents:
     temperature: 0.2
     description: "Breaks the architecture into atomic, testable tasks."
   qa:
-    model: "qwen/qwen3-32b"
+    model: "llama-3.3-70b-versatile"
     temperature: 0.1
     description: "Writes FAILING pytest tests first (TDD)."
-  coder:
-    model: "qwen/qwen3-32b"
+  designer:
+    model: "llama-3.3-70b-versatile"
+    temperature: 0.2
+    description: "Writes UI and frontend code to satisfy the design."
+  backend_coder:
+    model: "llama-3.3-70b-versatile"
     temperature: 0.2
     description: "Writes code that makes the QA tests pass."
   validator:

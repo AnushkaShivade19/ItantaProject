@@ -88,11 +88,17 @@ class QAAgent(BaseAgent):
 
         written: list[dict[str, str]] = []
         for task in run.tasks:
+            if getattr(task, "test_file_path", None):
+                existing_path = OUTPUT_ROOT.parent / task.test_file_path
+                if existing_path.exists():
+                    written.append({"task_id": task.id, "path": task.test_file_path})
+                    continue
+
             path = await self._write_test_for_task(run_id, task, arch, out_dir)
             written.append({"task_id": task.id, "path": path})
-            # Spacing reduces 429s on Groq free-tier 70b TPM windows.
-            import asyncio
-            await asyncio.sleep(5.0)
+            # Sleep removed to improve execution speed
+            # import asyncio
+            # await asyncio.sleep(5.0)
 
         summary = f"qa: {len(written)} failing test files written"
         self.log(run_id, summary, level="success")
@@ -120,6 +126,7 @@ class QAAgent(BaseAgent):
         if not filename:
             filename = _safe_filename(task.id, task.title)
         path = out_dir / filename
+        path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(code, encoding="utf-8")
 
         rel_path = str(path.relative_to(OUTPUT_ROOT.parent))

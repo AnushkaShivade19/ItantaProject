@@ -29,7 +29,7 @@ const AGENT_ITEMS = [
   { id: "architect", label: "Architect", icon: Cube },
   { id: "planner", label: "Planner", icon: ListChecks },
   { id: "qa", label: "QA · TDD", icon: TestTube },
-  { id: "coder", label: "Coder", icon: FileCode },
+  { id: "coder", label: "Generated Code", icon: FileCode },
   { id: "validator", label: "Validator", icon: ShieldCheck },
   { id: "preview", label: "Live Preview", icon: Desktop },
   { id: "recovery", label: "Recovery", icon: Lifebuoy },

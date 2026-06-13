@@ -63,34 +63,43 @@ export default function LivePreviewCard({ run }) {
           
           // Better React detection: if we see App.js, react imports, or package.json with react
           if (path === "package.json" && content.includes("react")) isReact = true;
-          if (path === "App.js" || path === "App.jsx") isReact = true;
+          if (path === "App.js" || path === "App.jsx" || path === "main.js" || path === "main.jsx") isReact = true;
           if (content.includes("import React") || content.includes("from 'react'") || content.includes('from "react"')) isReact = true;
         }
         
-        // If we determined it's React but we don't have a package.json, Sandpack's template 
-        // will automatically provide its default package.json which works perfectly!
-        
-        // Furthermore, if the AI generated a dud index.js that doesn't actually mount the React app,
-        // we should delete it so Sandpack's perfectly good default index.js takes over!
-        if (isReact && formattedFiles["/index.js"]) {
-           const idxContent = formattedFiles["/index.js"];
-           if (!idxContent.includes("createRoot") && !idxContent.includes("ReactDOM.render")) {
-               delete formattedFiles["/index.js"];
-           }
-        }
-        
-        // Sandpack's React template DEMANDS an /App.js. If the AI hallucinates and builds
-        // /pages/index.js instead (Next.js style) or just components, we MUST stub /App.js!
-        if (isReact && !formattedFiles["/App.js"] && !formattedFiles["/App.jsx"]) {
-            if (formattedFiles["/pages/index.js"]) {
-                formattedFiles["/App.js"] = `import React from "react";\nimport Page from "./pages/index";\nimport "./styles/globals.css";\nexport default function App() { return <Page />; }`;
-            } else {
-                const comp = Object.keys(formattedFiles).find(k => k.startsWith("/components/") && k.endsWith(".js"));
-                if (comp) {
-                    const name = comp.split("/").pop().replace(".js", "");
-                    formattedFiles["/App.js"] = `import React from "react";\nimport Comp from ".${comp.replace('.js', '')}";\nexport default function App() { return <Comp />; }`;
+        if (isReact) {
+            // Map common alternative entry points to index.js
+            if (!formattedFiles["/index.js"]) {
+                const altEntry = ["/main.js", "/main.jsx", "/index.jsx"].find(p => formattedFiles[p]);
+                if (altEntry) {
+                    formattedFiles["/index.js"] = formattedFiles[altEntry];
+                    delete formattedFiles[altEntry];
+                }
+            }
+
+            // Remove dud index.js if it doesn't mount
+            if (formattedFiles["/index.js"]) {
+                const idxContent = formattedFiles["/index.js"];
+                if (!idxContent.includes("createRoot") && !idxContent.includes("ReactDOM.render") && !idxContent.includes("hydrate")) {
+                    delete formattedFiles["/index.js"];
+                }
+            }
+
+            const hasMountingIndex = formattedFiles["/index.js"] !== undefined;
+
+            // Sandpack's default index.js imports App.js, so we MUST provide App.js if we use default index.js
+            if (!formattedFiles["/App.js"] && !formattedFiles["/App.jsx"] && !hasMountingIndex) {
+                if (formattedFiles["/pages/index.js"] || formattedFiles["/pages/index.jsx"]) {
+                    const ext = formattedFiles["/pages/index.js"] ? "js" : "jsx";
+                    formattedFiles["/App.js"] = `import React from "react";\nimport Page from "./pages/index.${ext}";\nimport "./styles/globals.css";\nexport default function App() { return <Page />; }`;
                 } else {
-                    formattedFiles["/App.js"] = `import React from "react";\nexport default function App() { return <h1>Generated App (No entry point found)</h1>; }`;
+                    const comp = Object.keys(formattedFiles).find(k => k.startsWith("/components/") && (k.endsWith(".js") || k.endsWith(".jsx")));
+                    if (comp) {
+                        const name = comp.split("/").pop().replace(/\.jsx?$/, "");
+                        formattedFiles["/App.js"] = `import React from "react";\nimport Comp from ".${comp.replace(/\.jsx?$/, "")}";\nexport default function App() { return <Comp />; }`;
+                    } else {
+                        formattedFiles["/App.js"] = `import React from "react";\nexport default function App() { return <h1>Generated App (No entry point found)</h1>; }`;
+                    }
                 }
             }
         }
@@ -100,7 +109,31 @@ export default function LivePreviewCard({ run }) {
              formattedFiles["/styles.css"] = formattedFiles["/styles/globals.css"];
         }
 
-        setFiles({ data: formattedFiles, isReact });
+        const extractedDeps = { "react": "^18.0.0", "react-dom": "^18.0.0" };
+        Object.entries(formattedFiles).forEach(([path, content]) => {
+           if (path.endsWith('.js') || path.endsWith('.jsx') || path.endsWith('.ts') || path.endsWith('.tsx')) {
+               const importRegex = /import\s+(?:.*?\s+from\s+)?['"]([^.][^'"]+)['"]/g;
+               let match;
+               while ((match = importRegex.exec(content)) !== null) {
+                   const dep = match[1];
+                   if (!dep.startsWith('/') && !dep.startsWith('react') && !dep.startsWith('react-dom')) {
+                       const depName = dep.startsWith('@') ? dep.split('/').slice(0, 2).join('/') : dep.split('/')[0];
+                       extractedDeps[depName] = "latest";
+                   }
+               }
+           }
+        });
+
+        if (formattedFiles["/package.json"]) {
+            try {
+                const pkg = JSON.parse(formattedFiles["/package.json"]);
+                if (pkg.dependencies) {
+                    Object.assign(extractedDeps, pkg.dependencies);
+                }
+            } catch (e) {}
+        }
+
+        setFiles({ data: formattedFiles, isReact, dependencies: extractedDeps });
         setLoading(false);
       })
       .catch((err) => {
@@ -155,7 +188,7 @@ export default function LivePreviewCard({ run }) {
       </div>
 
       <div className="w-full bg-[#151515] rounded-sm overflow-hidden border border-[#222]">
-        <SandpackProvider key={template + reloadKey} template={template} files={files.data} theme="dark" customSetup={{ dependencies: { "react": "^18.0.0", "react-dom": "^18.0.0" } }}>
+        <SandpackProvider key={template + reloadKey} template={template} files={files.data} theme="dark" customSetup={{ dependencies: files.dependencies || { "react": "^18.0.0", "react-dom": "^18.0.0" } }}>
           <SandpackLayout style={{ border: 0 }}>
             <SandpackPreview showNavigator={true} showOpenInCodeSandbox={false} style={{ height: "600px", width: "100%" }} />
           </SandpackLayout>

@@ -14,6 +14,8 @@ import TaskListCard from "./components/TaskListCard";
 import TestSuiteCard from "./components/TestSuiteCard";
 import CodeFilesCard from "./components/CodeFilesCard";
 import LivePreviewCard from "./components/LivePreviewCard";
+import ValidatorCard from "./components/ValidatorCard";
+import RecoveryCard from "./components/RecoveryCard";
 import { useAgenticBoot } from "./hooks/useAgenticBoot";
 import { useActiveRun } from "./hooks/useActiveRun";
 import { EVENT_LEVEL_TO_LOG_LEVEL } from "./lib/constants";
@@ -37,7 +39,8 @@ const agentStatusesFromRun = (run, pipeline) => {
   const base = Object.fromEntries(pipeline.map((n) => [n.name, "idle"]));
   if (!run?.agents) return base;
   for (const [name, agent] of Object.entries(run.agents)) {
-    base[name] = agent.status;
+    // If agent is error but run is still running, it is retrying
+    base[name] = (agent.status === "error" && run.status === "running") ? "running" : agent.status;
   }
   return base;
 };
@@ -87,6 +90,8 @@ function AppContent({ nav, activeRun, busy, onRunStarted, onResumed, logs, pipel
   if (nav === "planner") return <div className="max-w-6xl mx-auto space-y-6"><SpecificationCard run={activeRun} /><TaskListCard run={activeRun} /></div>;
   if (nav === "qa") return <div className="max-w-6xl mx-auto"><TestSuiteCard run={activeRun} /></div>;
   if (nav === "coder") return <div className="max-w-6xl mx-auto"><CodeFilesCard run={activeRun} /></div>;
+  if (nav === "validator") return <div className="max-w-6xl mx-auto"><ValidatorCard run={activeRun} /></div>;
+  if (nav === "recovery") return <div className="max-w-6xl mx-auto"><RecoveryCard run={activeRun} /></div>;
   if (nav === "preview") return <div className="max-w-6xl mx-auto"><LivePreviewCard run={activeRun} /></div>;
   
   if (nav === "config") return <div className="max-w-6xl mx-auto">{config && <ConfigPanel config={config} agents={agents} />}</div>;

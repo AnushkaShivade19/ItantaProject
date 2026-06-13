@@ -36,7 +36,7 @@ def cmd_config(_: argparse.Namespace) -> int:
     console.print(Panel.fit(f"[bold]{cfg['framework']['name']}[/] v{cfg['framework']['version']}",
                             border_style="white"))
 
-    tbl = Table(title="Agent → Model assignments", show_lines=False)
+    tbl = Table(title="Agent -> Model assignments", show_lines=False)
     tbl.add_column("Agent", style="bold")
     tbl.add_column("Model")
     tbl.add_column("Temp")
@@ -54,10 +54,21 @@ def cmd_status(_: argparse.Namespace) -> int:
 
 
 def cmd_run(args: argparse.Namespace) -> int:
-    console.print(Panel.fit(f"[yellow]Phase 1 scaffold only[/] — orchestrator not wired yet.\n"
-                            f"Your spec: [white]{args.spec!r}[/]\n"
-                            f"Run after Phase 8 to generate projects.",
-                            title="not-yet-implemented", border_style="yellow"))
+    import asyncio
+    from core.state_manager import state_manager
+    from core.orchestrator import Orchestrator
+
+    cfg = load_config()
+    
+    console.print(f"Creating run for spec: [white]{args.spec!r}[/]")
+    run = state_manager.create(spec_input=args.spec)
+    
+    orchestrator = Orchestrator(state=state_manager, config=cfg)
+    
+    # Run the orchestrator graph
+    asyncio.run(orchestrator.run(run.id))
+    
+    console.print(f"\n[green]Run completed![/] Check {run.id} in logs.")
     return 0
 
 

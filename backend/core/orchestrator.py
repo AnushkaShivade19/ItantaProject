@@ -1,16 +1,13 @@
 """
-Orchestrator — coordinates the 7-agent pipeline.
-
-Pause/resume aware: when an agent flips ``run.status`` to
-``awaiting_input``, ``run()`` returns immediately without marking the
-run completed. A subsequent call (after the user answers) skips any
-agents already in a terminal state and resumes where we paused.
+Orchestrator — coordinates the 7-agent pipeline using LangGraph.
 """
 from __future__ import annotations
 
 import asyncio
 import importlib
-from typing import Any
+from typing import Any, TypedDict
+
+from langgraph.graph import StateGraph, START, END
 
 from agents.base_agent import BaseAgent
 from core.logger import event
@@ -21,41 +18,40 @@ AGENT_IMPORT_PATHS: dict[str, tuple[str, str]] = {
     "architect": ("agents.architect_agent", "ArchitectAgent"),
     "planner": ("agents.planner_agent", "PlannerAgent"),
     "qa": ("agents.qa_agent", "QAAgent"),
-    "coder": ("agents.coder_agent", "CoderAgent"),
+    "designer": ("agents.designer_agent", "DesignerAgent"),
+    "backend_coder": ("agents.backend_coder_agent", "BackendCoderAgent"),
     "validator": ("agents.validator_agent", "ValidatorAgent"),
     "recovery": ("agents.recovery_agent", "RecoveryAgent"),
 }
 
 TERMINAL_AGENT_STATES = {AgentStatus.success, AgentStatus.skipped}
 
-# Orchestrator per-step decision signals.
-_CONTINUE = "continue"
-_PAUSE = "pause"
-_STOP = "stop"
-
+class PipelineState(TypedDict):
+    run_id: str
+    total_retries: int
 
 class Orchestrator:
-    """High-level controller for a framework run."""
+    """High-level controller for a framework run using LangGraph."""
 
     def __init__(self, state: StateManager, config: dict[str, Any] | None = None) -> None:
         self.state = state
         self.config: dict[str, Any] = config or {}
         self.pipeline: list[str] = list(AGENT_IMPORT_PATHS.keys())
         self._agent_cache: dict[str, BaseAgent] = {}
+        self.graph = self._build_graph()
 
-    # ------------- metadata -------------
     def describe_pipeline(self) -> list[dict[str, str]]:
         return [
             {"name": "intake", "label": "Intake", "desc": "Clarifies spec & produces JSON"},
             {"name": "architect", "label": "Architect", "desc": "Folder / API / DB design"},
             {"name": "planner", "label": "Planner", "desc": "Atomic testable tasks"},
             {"name": "qa", "label": "QA (TDD)", "desc": "Failing pytest cases first"},
-            {"name": "coder", "label": "Coder", "desc": "Writes code to pass tests"},
+            {"name": "designer", "label": "Designer", "desc": "Generates UI layouts and styling"},
+            {"name": "backend_coder", "label": "Backend Coder", "desc": "Writes code to pass tests"},
             {"name": "validator", "label": "Validator", "desc": "Runs pytest + lint"},
             {"name": "recovery", "label": "Recovery", "desc": "Heals failures, retries"},
         ]
 
-    # ------------- config helpers -------------
     def _retry_policy(self) -> dict[str, int]:
         r = self.config.get("retry", {})
         return {
@@ -64,7 +60,6 @@ class Orchestrator:
             "hard_fail_after": int(r.get("hard_fail_after", 5)),
         }
 
-    # ------------- agent factory -------------
     def _get_agent(self, name: str) -> BaseAgent:
         if name in self._agent_cache:
             return self._agent_cache[name]
@@ -75,68 +70,97 @@ class Orchestrator:
         self._agent_cache[name] = agent
         return agent
 
-    # ------------- main entrypoint -------------
-    async def run(self, run_id: str) -> RunState:
-        self._require_run(run_id)  # validate exists; raises if not
-        self.state.update_run(run_id, status=RunStatus.running)
-        event(run_id, "info", "orchestrator",
-              f"pipeline start · {len(self.pipeline)} agents",
-              pipeline=self.pipeline)
-
-        total_retries = 0
-        hard_fail_after = self._retry_policy()["hard_fail_after"]
+    def _build_graph(self):
+        builder = StateGraph(PipelineState)
 
         for agent_name in self.pipeline:
-            decision, total_retries = await self._step(
-                run_id, agent_name, total_retries, hard_fail_after
-            )
-            if decision == _PAUSE:
-                return self._require_run(run_id)
-            if decision == _STOP:
-                break
+            builder.add_node(agent_name, self._create_node(agent_name))
 
-        return self._finalize(run_id, total_retries)
+        # Linear path for standard pipeline
+        builder.add_edge(START, "intake")
+        builder.add_edge("intake", "architect")
+        builder.add_edge("architect", "planner")
+        builder.add_edge("planner", "qa")
+        builder.add_edge("qa", "designer")
+        builder.add_edge("designer", "backend_coder")
+        builder.add_edge("backend_coder", "validator")
 
-    # ------------- per-step dispatcher -------------
-    async def _step(
-        self,
-        run_id: str,
-        agent_name: str,
-        total_retries: int,
-        hard_fail_after: int,
-    ) -> tuple[str, int]:
-        """Run one agent and decide what to do next."""
+        # Validator conditional edges
+        def validator_condition(state: PipelineState) -> str:
+            run = self._require_run(state["run_id"])
+            if run.status in (RunStatus.failed, RunStatus.awaiting_input):
+                return END
+            val_agent = run.agents["validator"]
+            if val_agent.status == AgentStatus.error or (val_agent.output_summary and "fail" in val_agent.output_summary.lower()):
+                return "recovery"
+            return END
+
+        builder.add_conditional_edges("validator", validator_condition, {"recovery": "recovery", END: END})
+
+        # Recovery conditional edges
+        def recovery_condition(state: PipelineState) -> str:
+            run = self._require_run(state["run_id"])
+            if run.status in (RunStatus.failed, RunStatus.awaiting_input):
+                return END
+            # Loop back to QA
+            # NOTE: Agents loop back and their status should be reset by RecoveryAgent for them to run again
+            return "qa"
+
+        builder.add_conditional_edges("recovery", recovery_condition, {"qa": "qa", END: END})
+
+        return builder.compile()
+
+    def _create_node(self, agent_name: str):
+        async def node_func(state: PipelineState) -> PipelineState:
+            run_id = state["run_id"]
+            run = self._require_run(run_id)
+
+            if run.status in (RunStatus.failed, RunStatus.awaiting_input, RunStatus.completed):
+                return state
+
+            if run.agents[agent_name].status in TERMINAL_AGENT_STATES:
+                event(run_id, "info", "orchestrator",
+                      f"skip {agent_name} · already {run.agents[agent_name].status.value}")
+                return state
+
+            retries_used = await self._run_agent_step(run_id, agent_name)
+            state["total_retries"] += retries_used
+
+            run = self._require_run(run_id)
+            if run.status == RunStatus.awaiting_input:
+                event(run_id, "warn", "orchestrator",
+                      f"pipeline paused — {agent_name} awaiting user input")
+                return state
+
+            hard_fail_after = self._retry_policy()["hard_fail_after"]
+            if state["total_retries"] >= hard_fail_after:
+                event(run_id, "error", "orchestrator",
+                      f"hard_fail_after={hard_fail_after} retries exceeded — aborting",
+                      total_retries=state["total_retries"])
+                self.state.update_run(run_id, status=RunStatus.failed)
+                return state
+
+            return state
+
+        return node_func
+
+    async def run(self, run_id: str) -> RunState:
+        self._require_run(run_id)
+        self.state.update_run(run_id, status=RunStatus.running)
+        event(run_id, "info", "orchestrator",
+              f"pipeline start · {len(self.pipeline)} agents (LangGraph)",
+              pipeline=self.pipeline)
+
+        initial_state: PipelineState = {"run_id": run_id, "total_retries": 0}
+        
+        final_state = await self.graph.ainvoke(initial_state)
+
         run = self._require_run(run_id)
-        if run.agents[agent_name].status in TERMINAL_AGENT_STATES:
-            event(run_id, "info", "orchestrator",
-                  f"skip {agent_name} · already {run.agents[agent_name].status.value}")
-            return _CONTINUE, total_retries
-
-        retries_used = await self._run_agent_step(run_id, agent_name)
-        total_retries += retries_used
-        run = self._require_run(run_id)
-
-        if run.status == RunStatus.awaiting_input:
-            event(run_id, "warn", "orchestrator",
-                  f"pipeline paused — {agent_name} awaiting user input")
-            return _PAUSE, total_retries
-        if run.status == RunStatus.failed:
-            return _STOP, total_retries
-        if total_retries >= hard_fail_after:
-            event(run_id, "error", "orchestrator",
-                  f"hard_fail_after={hard_fail_after} retries exceeded — aborting",
-                  total_retries=total_retries)
-            self.state.update_run(run_id, status=RunStatus.failed)
-            return _STOP, total_retries
-        return _CONTINUE, total_retries
-
-    # ------------- finalisation -------------
-    def _finalize(self, run_id: str, total_retries: int) -> RunState:
-        run = self.state.get(run_id)
-        if run is not None and run.status == RunStatus.running:
+        if run.status == RunStatus.running:
             self.state.update_run(run_id, status=RunStatus.completed)
             event(run_id, "success", "orchestrator",
-                  "pipeline complete", total_retries=total_retries)
+                  "pipeline complete", total_retries=final_state["total_retries"])
+
         return self._require_run(run_id)
 
     def _require_run(self, run_id: str) -> RunState:
@@ -145,7 +169,6 @@ class Orchestrator:
             raise ValueError(f"unknown run_id={run_id}")
         return run
 
-    # ------------- per-agent step with retry -------------
     async def _run_agent_step(self, run_id: str, agent_name: str) -> int:
         policy = self._retry_policy()
         max_attempts = policy["max_attempts"]
@@ -168,7 +191,6 @@ class Orchestrator:
 
         return max_attempts
 
-    # ---- outcome helpers ----
     def _mark_skipped(self, run_id: str, agent_name: str, attempt: int) -> int:
         self.state.mark_agent(
             run_id, agent_name, AgentStatus.skipped,
@@ -186,7 +208,6 @@ class Orchestrator:
         max_attempts: int,
         exc: BaseException,
     ) -> bool:
-        """Record the failure. Return True if retries are exhausted."""
         event(run_id, "error", agent_name,
               f"attempt {attempt}/{max_attempts} failed: {exc}",
               error=str(exc))
@@ -205,15 +226,13 @@ class Orchestrator:
         summary = _extract_summary(result)
         is_awaiting = isinstance(result, dict) and result.get("mode") == "awaiting_input"
         if is_awaiting:
-            # Keep agent in `running` shape — re-entry after the user answers
-            # will run this exact step again with new context.
             self.state.mark_agent(run_id, agent_name, AgentStatus.running,
                                   attempts=attempt, output_summary=summary)
+            self.state.update_run(run_id, status=RunStatus.awaiting_input)
         else:
             self.state.mark_agent(run_id, agent_name, AgentStatus.success,
                                   attempts=attempt, output_summary=summary)
         return attempt - 1
-
 
 def _extract_summary(result: Any) -> str:
     if isinstance(result, dict):
