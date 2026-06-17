@@ -202,6 +202,7 @@ export default function LivePreviewCard({ run }) {
       });
 
     return () => { mounted = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runId, tasksFilesHash, reloadKey]);
 
   if (!run || !run.tasks || run.tasks.length === 0) return null;
