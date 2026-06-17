@@ -38,9 +38,9 @@ const loadDashboardData = () =>
     phases,
   }));
 
-const groqStatusLog = (groqOk) => ({
-  msg: groqOk ? "groq key configured" : "groq key missing — add to backend/.env",
-  level: groqOk ? "success" : "warn",
+const skynetStatusLog = (skynetOk) => ({
+  msg: skynetOk ? "skynet key configured" : "skynet key missing — add to backend/.env",
+  level: skynetOk ? "success" : "warn",
 });
 
 const runBootSequence = async (mountedRef, setters, addLog, setError) => {
@@ -53,8 +53,8 @@ const runBootSequence = async (mountedRef, setters, addLog, setError) => {
     setters.setAgents(payload.agents);
     setters.setPhases(payload.phases);
     addLog(`health=${payload.health.status} v${payload.health.version}`, "success", "health");
-    const g = groqStatusLog(payload.health.groq_key_configured);
-    addLog(g.msg, g.level, "groq");
+    const g = skynetStatusLog(payload.health.groq_key_configured);
+    addLog(g.msg, g.level, "skynet");
     addLog(
       `loaded ${payload.pipeline.length} agents · ${payload.phases.length} phases`,
       "info",

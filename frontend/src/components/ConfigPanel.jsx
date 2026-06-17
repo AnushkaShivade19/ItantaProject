@@ -34,7 +34,7 @@ function ConfigHeader({ config }) {
       <div>
         <div className="overline mb-1">runtime configuration</div>
         <h2 className="font-heading text-xl tracking-tight font-medium">
-          LLM Agents · Groq
+          LLM Agents · Skynet
         </h2>
       </div>
       <div className="text-xs font-mono text-muted-ink">

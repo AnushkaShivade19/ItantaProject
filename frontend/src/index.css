@@ -38,10 +38,10 @@ html, body, #root {
     margin: 0;
     padding: 0;
     height: 100%;
-    background: var(--bg);
+    background: radial-gradient(circle at 50% -20%, #1a1a24, var(--bg));
     color: var(--text-primary);
     font-family: var(--font-body);
-    font-size: 14px;
+    font-size: 18px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
@@ -95,9 +95,18 @@ html, body, #root {
 .text-secondary-ink { color: var(--text-secondary); }
 .text-muted-ink { color: var(--text-muted); }
 
-.surface { background: var(--surface); border: 1px solid var(--border); }
-.surface-raised { background: var(--surface-elevated); border: 1px solid var(--border); }
-.grid-line { border: 1px solid var(--border); }
+.surface { background: rgba(18, 18, 18, 0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1); }
+.surface-raised { background: rgba(26, 26, 26, 0.8); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2); }
+.grid-line { border: 1px solid rgba(255, 255, 255, 0.05); }
+
+.glass-panel {
+    background: rgba(20, 20, 20, 0.65);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
 
 .overline {
     font-size: 10px;
@@ -136,9 +145,10 @@ html, body, #root {
 }
 .agent-node[data-status="idle"] { color: var(--text-secondary); }
 .agent-node[data-status="running"] {
-    border-color: rgba(255, 176, 0, 0.5);
-    box-shadow: inset 0 0 20px rgba(255, 176, 0, 0.08);
+    border-color: rgba(255, 176, 0, 0.8);
+    box-shadow: 0 0 20px rgba(255, 176, 0, 0.2), inset 0 0 20px rgba(255, 176, 0, 0.1);
     color: var(--text-primary);
+    background: rgba(255, 176, 0, 0.05);
 }
 .agent-node[data-status="running"]::before {
     content: '';
@@ -149,8 +159,10 @@ html, body, #root {
     animation: shimmer 2.2s infinite;
 }
 .agent-node[data-status="success"] {
-    border-color: rgba(16, 185, 129, 0.4);
+    border-color: rgba(16, 185, 129, 0.8);
     color: var(--text-primary);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.2), inset 0 0 20px rgba(16, 185, 129, 0.1);
+    background: rgba(16, 185, 129, 0.05);
 }
 .agent-node[data-status="error"] {
     border-color: rgba(225, 29, 72, 0.6);

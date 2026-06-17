@@ -8,6 +8,7 @@ import {
   ShieldCheck,
   Lifebuoy,
   CaretRight,
+  CheckCircle,
 } from "@phosphor-icons/react";
 import { AGENT_NODE_MIN_WIDTH_PX, agentColor } from "../lib/constants";
 
@@ -26,9 +27,10 @@ const iconWeight = (status) => (status === "running" ? "fill" : "regular");
 const stepLabel = (i) => `0${i + 1}`;
 
 function AgentCardHeader({ Icon, status, index }) {
+  const DisplayIcon = status === "success" ? CheckCircle : Icon;
   return (
     <div className="flex items-center justify-between">
-      <Icon size={24} weight={iconWeight(status)} color={agentColor(status)} />
+      <DisplayIcon size={24} weight={iconWeight(status)} color={agentColor(status)} />
       <span className="text-xs font-mono uppercase tracking-wider text-muted-ink">
         {stepLabel(index)}
       </span>
@@ -56,10 +58,10 @@ function AgentCard({ node, index, status }) {
     <div
       data-testid={`agent-node-${node.name}`}
       data-status={status}
-      className="agent-node flex flex-col gap-3 px-5 py-4 rounded-xl fade-in shadow-sm hover:shadow-md transition-shadow duration-300 relative z-10 bg-surface h-full"
+      className={`agent-node flex flex-col gap-3 px-5 py-4 rounded-xl fade-in shadow-sm hover:shadow-md transition-all duration-300 relative z-10 bg-surface h-full transform ${status === 'running' ? 'scale-[1.02]' : ''}`}
       style={{
-        width: AGENT_NODE_MIN_WIDTH_PX + 40,
-        minWidth: AGENT_NODE_MIN_WIDTH_PX + 40,
+        width: AGENT_NODE_MIN_WIDTH_PX + 50,
+        minWidth: AGENT_NODE_MIN_WIDTH_PX + 50,
         animationDelay: `${index * 60}ms`,
       }}
     >
@@ -80,43 +82,58 @@ function PipelineConnector({ active }) {
   );
 }
 
-function PipelineHeader({ count }) {
+function PipelineHeader() {
   return (
     <div className="flex items-center justify-between mb-8">
       <div>
-        <div className="overline mb-2 text-sm tracking-widest">pipeline</div>
         <h2 className="font-heading text-2xl tracking-tight font-semibold">
           Agent Execution Graph
         </h2>
       </div>
-      <span className="text-sm font-mono text-muted-ink bg-black/5 dark:bg-white/5 px-3 py-1.5 rounded-full">
-        TDD-first · {count} agents
-      </span>
     </div>
   );
 }
 
+const DEFAULT_PIPELINE = [
+  { name: "intake", label: "Intake", desc: "Process requirements" },
+  { name: "architect", label: "Architect", desc: "Design system" },
+  { name: "planner", label: "Planner", desc: "Create plan" },
+  { name: "qa", label: "QA", desc: "Write tests" },
+  { name: "coder", label: "Coder", desc: "Implement code" },
+  { name: "validator", label: "Validator", desc: "Verify code" }
+];
+
 export default function AgentPipeline({ pipeline = [], statuses = {} }) {
-  const mainNodes = pipeline.slice(0, 7);
-  const recoveryNode = pipeline.find(n => n.name === "recovery");
-  const CARD_W = AGENT_NODE_MIN_WIDTH_PX + 40; // 200px
-  const CONN_W = 40; // 40px
-  const CARD_H = 160;
-  const ROW_GAP = 60;
+  const activePipeline = pipeline && pipeline.length > 0 ? pipeline : DEFAULT_PIPELINE;
+  const isFinished = statuses.validator === "success" || statuses.recovery === "success";
+  
+  const baseNodes = activePipeline.filter(n => n.name !== "recovery").slice(0, 6);
+  const mainNodes = [...baseNodes, {
+    name: "completed",
+    label: "Completed",
+    desc: "Deployment ready"
+  }];
+  const displayStatuses = { ...statuses, completed: isFinished ? "success" : "idle" };
+  
+  const recoveryNode = pipeline.find(n => n.name === "recovery") || { name: "recovery", label: "Recovery", desc: "Fix errors" };
+  const CARD_W = AGENT_NODE_MIN_WIDTH_PX + 50; // Accommodate larger text and padding
+  const CONN_W = 50; 
+  const CARD_H = 190;
+  const ROW_GAP = 80;
   
   const totalWidth = 7 * CARD_W + 6 * CONN_W;
   const totalHeight = 2 * CARD_H + ROW_GAP;
 
   return (
     <section data-testid="agent-pipeline" className="surface p-6 md:p-8 rounded-2xl shadow-lg border border-[var(--border-subtle)] overflow-hidden">
-      <PipelineHeader count={pipeline.length} />
+      <PipelineHeader />
       <div className="overflow-x-auto pb-4 custom-scrollbar relative">
         <div className="relative" style={{ width: totalWidth, height: totalHeight }}>
           
           {/* Main Pipeline Row */}
-          <div className="absolute top-0 left-0 flex items-stretch h-[160px] z-10">
+          <div className="absolute top-0 left-0 flex items-stretch h-[190px] z-10">
             {mainNodes.map((node, i) => {
-              const status = statuses[node.name] || "idle";
+              const status = displayStatuses[node.name] || "idle";
               const isLast = i === mainNodes.length - 1;
               return (
                 <Fragment key={node.name}>
@@ -137,12 +154,12 @@ export default function AgentPipeline({ pipeline = [], statuses = {} }) {
               className="absolute z-10" 
               style={{ 
                 top: CARD_H + ROW_GAP, 
-                left: 6 * (CARD_W + CONN_W), // Exact left edge of Validator
+                left: 5 * (CARD_W + CONN_W), // Exact left edge of Validator (index 5)
                 width: CARD_W,
                 height: CARD_H 
               }}
             >
-              <AgentCard node={recoveryNode} index={7} status={statuses.recovery || "idle"} />
+              <AgentCard node={recoveryNode} index={6} status={statuses.recovery || "idle"} />
             </div>
           )}
 
@@ -160,7 +177,7 @@ export default function AgentPipeline({ pipeline = [], statuses = {} }) {
               
               {/* Validator to Recovery (Down) */}
               <path 
-                d={`M ${6 * (CARD_W + CONN_W) + CARD_W/2} ${CARD_H} L ${6 * (CARD_W + CONN_W) + CARD_W/2} ${CARD_H + ROW_GAP - 10}`}
+                d={`M ${5 * (CARD_W + CONN_W) + CARD_W/2} ${CARD_H} L ${5 * (CARD_W + CONN_W) + CARD_W/2} ${CARD_H + ROW_GAP - 10}`}
                 stroke="var(--state-error)" 
                 strokeWidth="2" 
                 strokeDasharray="4 4"
@@ -170,7 +187,7 @@ export default function AgentPipeline({ pipeline = [], statuses = {} }) {
 
               {/* Recovery to QA (Left & Up) */}
               <path 
-                d={`M ${6 * (CARD_W + CONN_W) - 10} ${CARD_H + ROW_GAP + CARD_H/2} L ${3 * (CARD_W + CONN_W) + CARD_W/2} ${CARD_H + ROW_GAP + CARD_H/2} L ${3 * (CARD_W + CONN_W) + CARD_W/2} ${CARD_H + 10}`}
+                d={`M ${5 * (CARD_W + CONN_W) - 10} ${CARD_H + ROW_GAP + CARD_H/2} L ${3 * (CARD_W + CONN_W) + CARD_W/2} ${CARD_H + ROW_GAP + CARD_H/2} L ${3 * (CARD_W + CONN_W) + CARD_W/2} ${CARD_H + 10}`}
                 stroke="var(--state-warning)" 
                 strokeWidth="2" 
                 strokeDasharray="4 4"

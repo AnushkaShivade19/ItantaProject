@@ -1,9 +1,22 @@
 import { ShieldCheck, CheckCircle, XCircle } from "@phosphor-icons/react";
+import { TestFileRow } from "./TestFileRow";
+
+const collectTestFiles = (tasks) =>
+  (tasks || [])
+    .filter((t) => t.test_file_path)
+    .map((t) => ({
+      task_id: t.id,
+      title: t.title,
+      path: t.test_file_path,
+      status: t.status,
+    }));
 
 export default function ValidatorCard({ run }) {
   const results = run?.test_results;
   
   if (!results) {
+    const files = collectTestFiles(run?.tasks);
+
     return (
       <section className="surface p-5 rounded-sm fade-in border border-[var(--border)]">
         <div className="flex items-start justify-between mb-4">
@@ -16,7 +29,19 @@ export default function ValidatorCard({ run }) {
           </div>
         </div>
         <div className="text-muted-ink text-sm p-4 text-center border border-dashed rounded-sm" style={{ borderColor: "var(--border)" }}>
-          No validation results available yet. The Validator agent will execute tests once code is generated.
+          {files.length > 0 ? (
+            <div className="text-left flex flex-col items-center">
+              <p className="mb-3 w-full text-center">The following tests are queued for execution or currently running:</p>
+              <div className="w-full mt-2">
+                {files.map((f) => (
+                  <TestFileRow key={f.task_id} runId={run.id} file={f} />
+                ))}
+              </div>
+              <p className="mt-4 text-xs opacity-70">Waiting for Validator agent to finish...</p>
+            </div>
+          ) : (
+            "No validation results available yet. The Validator agent will execute tests once code is generated."
+          )}
         </div>
       </section>
     );
@@ -47,6 +72,17 @@ export default function ValidatorCard({ run }) {
            style={{ background: "#050505", color: isPassed ? "var(--state-success)" : "var(--state-error)", border: "1px solid var(--border)", maxHeight: "500px", overflowY: "auto" }}>
         {results.output || "No output provided."}
       </pre>
+
+      {collectTestFiles(run?.tasks).length > 0 && (
+        <div className="mt-4 pt-4 border-t" style={{ borderColor: "var(--border)" }}>
+          <h4 className="font-heading text-md font-medium mb-3">Executed Test Files</h4>
+          <div className="w-full">
+            {collectTestFiles(run?.tasks).map((f) => (
+              <TestFileRow key={f.task_id} runId={run.id} file={f} />
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

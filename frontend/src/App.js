@@ -1,10 +1,8 @@
 import { useCallback, useMemo, useState } from "react";
 import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
-import PhaseBanner from "./components/PhaseBanner";
 import AgentPipeline from "./components/AgentPipeline";
 import ConfigPanel from "./components/ConfigPanel";
-import LogTerminal from "./components/LogTerminal";
 import SpecEditor from "./components/SpecEditor";
 import RunSummary from "./components/RunSummary";
 import ClarificationCard from "./components/ClarificationCard";
@@ -14,12 +12,12 @@ import TaskListCard from "./components/TaskListCard";
 import TestSuiteCard from "./components/TestSuiteCard";
 import CodeFilesCard from "./components/CodeFilesCard";
 import LivePreviewCard from "./components/LivePreviewCard";
+import ProjectsCard from "./components/ProjectsCard";
 import ValidatorCard from "./components/ValidatorCard";
 import RecoveryCard from "./components/RecoveryCard";
 import { useAgenticBoot } from "./hooks/useAgenticBoot";
 import { useActiveRun } from "./hooks/useActiveRun";
 import { EVENT_LEVEL_TO_LOG_LEVEL } from "./lib/constants";
-import "./App.css";
 
 const timeOnly = (iso) =>
   iso ? iso.split("T")[1].replace("Z", "").slice(0, 12) : "";
@@ -66,7 +64,7 @@ function ErrorBanner({ error }) {
 function DashboardFooter({ phaseStatus }) {
   return (
     <footer className="pt-4 pb-8 text-[11px] font-mono text-muted-ink flex items-center justify-between">
-      <div>Skynet · FastAPI + Groq</div>
+      <div>Skynet · FastAPI + Skynet</div>
       <div>{phaseStatus}</div>
     </footer>
   );
@@ -94,6 +92,8 @@ function AppContent({ nav, activeRun, busy, onRunStarted, onResumed, logs, pipel
   if (nav === "recovery") return <div className="max-w-6xl mx-auto"><RecoveryCard run={activeRun} /></div>;
   if (nav === "preview") return <div className="max-w-6xl mx-auto"><LivePreviewCard run={activeRun} /></div>;
   
+  if (nav === "projects" || nav === "runs") return <div className="w-full px-4"><ProjectsCard /></div>;
+  
   if (nav === "config") return <div className="max-w-6xl mx-auto">{config && <ConfigPanel config={config} agents={agents} />}</div>;
 
   return (
@@ -116,7 +116,10 @@ export default function App() {
     () => [...logs, ...runEvents.map(mapEventToLog)],
     [logs, runEvents]
   );
-  const handleRunStarted = useCallback((id) => setActiveRunId(id), []);
+  const handleRunStarted = useCallback((id) => {
+    setActiveRunId(id);
+    setNav("dashboard");
+  }, []);
   const handleResumed = useCallback(() => {}, []);
   const busy = isRunBusy(activeRun);
   const phaseStatus = computePhaseStatus(activeRun);
@@ -141,7 +144,7 @@ export default function App() {
           />
           
           <div className="mt-16">
-            <DashboardFooter phaseStatus={phaseStatus} />
+            {/* Removed DashboardFooter per user request */}
           </div>
         </main>
       </div>

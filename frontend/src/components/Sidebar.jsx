@@ -19,9 +19,7 @@ import {
 
 const NAV_ITEMS = [
   { id: "dashboard", label: "Dashboard", icon: Cube },
-  { id: "runs", label: "Runs", icon: ClockCounterClockwise },
   { id: "projects", label: "Projects", icon: FolderOpen },
-  { id: "config", label: "Config", icon: Gear },
 ];
 
 const AGENT_ITEMS = [
@@ -55,15 +53,7 @@ function NavButton({ item, active, onSelect, iconSize = NAV_ICON_SIZE }) {
 }
 
 function SidebarFooter() {
-  return (
-    <div
-      className="mt-auto p-4 border-t text-[11px] font-mono text-muted-ink"
-      style={{ borderColor: "var(--border)" }}
-    >
-      <div>$ agentic --phase 1</div>
-      <div className="opacity-60">scaffold complete</div>
-    </div>
-  );
+  return null;
 }
 
 export default function Sidebar({ active = "dashboard", onSelect }) {

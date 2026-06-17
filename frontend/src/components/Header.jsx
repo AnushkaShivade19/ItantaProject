@@ -6,16 +6,15 @@ function Brand() {
   return (
     <div className="flex items-center gap-3">
       <div
-        className="w-7 h-7 grid place-items-center"
+        className="w-8 h-8 grid place-items-center rounded-sm"
         style={{ background: "var(--brand)", color: "var(--brand-fg)" }}
       >
-        <Terminal size={HEADER_ICON_SIZE} weight="bold" />
+        <Terminal size={HEADER_ICON_SIZE + 4} weight="bold" />
       </div>
       <div className="flex items-baseline gap-3">
-        <span className="font-heading font-medium tracking-tight text-[15px]">
+        <span className="font-heading font-black tracking-tight text-3xl">
           Skynet
         </span>
-        <span className="overline">Autonomous AI Software Generator</span>
       </div>
     </div>
   );
@@ -28,15 +27,15 @@ function HealthPill({ health }) {
   return <StatusPill value={value} color={color} testId="health-pill" />;
 }
 
-function GroqPill({ configured }) {
+function SkynetPill({ configured }) {
   const color = configured ? "var(--state-success)" : "var(--state-warning)";
   const value = configured ? "configured" : "unset";
   return (
     <StatusPill
-      label="GROQ"
+      label="SKYNET"
       value={value}
       color={color}
-      testId="groq-status-dot"
+      testId="skynet-status-dot"
     />
   );
 }
@@ -48,21 +47,11 @@ export default function Header({ health }) {
       className="sticky top-0 z-50 backdrop-blur-xl bg-[#0a0a0a]/80 border-b"
       style={{ borderColor: "var(--border)" }}
     >
-      <div className="flex items-center justify-between px-6 h-14">
+      <div className="flex items-center justify-between px-6 h-16">
         <Brand />
         <div className="flex items-center gap-5">
           <HealthPill health={health} />
-          <GroqPill configured={!!health?.groq_key_configured} />
-          <a
-            href="https://console.groq.com/keys"
-            target="_blank"
-            rel="noreferrer"
-            className="btn-secondary text-xs"
-            data-testid="groq-key-link"
-          >
-            <GithubLogo size={14} />
-            Get API Key
-          </a>
+          <SkynetPill configured={!!health?.groq_key_configured} />
         </div>
       </div>
     </header>

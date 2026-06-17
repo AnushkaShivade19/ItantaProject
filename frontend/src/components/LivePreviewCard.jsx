@@ -8,10 +8,14 @@ export default function LivePreviewCard({ run }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [viewMode, setViewMode] = useState("sandpack"); // "sandpack" or "iframe"
+
+  const runId = run?.id;
+  const tasksFilesHash = JSON.stringify(run?.tasks?.map(t => t.code_file_paths));
 
   useEffect(() => {
     let mounted = true;
-    if (!run || !run.tasks) return;
+    if (!runId || !tasksFilesHash) return;
     
     const hasFiles = run.tasks.some(t => t.code_file_paths && t.code_file_paths.length > 0);
     if (!hasFiles) {
@@ -20,7 +24,7 @@ export default function LivePreviewCard({ run }) {
     }
 
     setLoading(true);
-    fetchAllRunFiles(run.id)
+    fetchAllRunFiles(runId)
       .then((data) => {
         if (!mounted) return;
         
@@ -109,6 +113,60 @@ export default function LivePreviewCard({ run }) {
              formattedFiles["/styles.css"] = formattedFiles["/styles/globals.css"];
         }
 
+        // Provide a custom fallback if no index.html exists for non-React projects
+        if (!isReact && !formattedFiles["/index.html"]) {
+            const pyFiles = Object.keys(formattedFiles).filter(k => k.endsWith(".py"));
+            if (pyFiles.length > 0) {
+                formattedFiles["/index.html"] = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Backend Project</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #151515; color: #e0e0e0; padding: 2rem; margin: 0; }
+    .container { max-width: 800px; margin: 0 auto; }
+    h1 { color: #fff; font-weight: 500; }
+    .notice { border-left: 4px solid #3b82f6; padding: 1rem; background: rgba(59, 130, 246, 0.1); margin-top: 1.5rem; border-radius: 0 8px 8px 0; }
+    .file-list { background: #222; padding: 1rem; border-radius: 8px; margin-top: 1.5rem; border: 1px solid #333; }
+    .file-list ul { list-style: none; padding: 0; margin: 0; }
+    .file-list li { margin: 0.5rem 0; padding: 0.5rem; background: #2a2a2a; border-radius: 4px; font-family: monospace; font-size: 13px; color: #4ade80; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Backend Project Generated</h1>
+    <div class="notice">
+      <p style="margin-top: 0;"><strong>Note:</strong> This project consists of Python backend code. The live preview environment runs in the browser and cannot execute Python applications.</p>
+      <p style="margin-bottom: 0;">Please check the <strong>Code Files</strong> tab to view the source code, or download the files to run them locally.</p>
+    </div>
+    <div class="file-list">
+      <h2 style="font-size: 16px; margin-top: 0; color: #fff;">Generated Python Files</h2>
+      <ul>
+        ${pyFiles.map(f => `<li>${f}</li>`).join('')}
+      </ul>
+    </div>
+  </div>
+</body>
+</html>`;
+                formattedFiles["/index.js"] = `// Backend project.`;
+            } else {
+                formattedFiles["/index.html"] = `<!DOCTYPE html>
+<html>
+<head>
+  <title>App Generated</title>
+  <style>body { font-family: sans-serif; padding: 2rem; color: #fff; background: #151515; }</style>
+</head>
+<body>
+  <h1>App Generated</h1>
+  <p>No frontend HTML was found in the generated files.</p>
+  <p>Please check the Code Files tab to view the source code.</p>
+</body>
+</html>`;
+                formattedFiles["/index.js"] = `// No frontend JS generated`;
+            }
+        }
+
         const extractedDeps = { "react": "^18.0.0", "react-dom": "^18.0.0" };
         Object.entries(formattedFiles).forEach(([path, content]) => {
            if (path.endsWith('.js') || path.endsWith('.jsx') || path.endsWith('.ts') || path.endsWith('.tsx')) {
@@ -144,7 +202,7 @@ export default function LivePreviewCard({ run }) {
       });
 
     return () => { mounted = false; };
-  }, [run, reloadKey]);
+  }, [runId, tasksFilesHash, reloadKey]);
 
   if (!run || !run.tasks || run.tasks.length === 0) return null;
   const hasFiles = run.tasks.some(t => t.code_file_paths && t.code_file_paths.length > 0);
@@ -158,11 +216,13 @@ export default function LivePreviewCard({ run }) {
 
   return (
     <section
-      className="surface p-5 rounded-sm fade-in mt-6 relative"
+      className="bg-[#0a0a0a] p-6 rounded-xl fade-in mt-6 relative shadow-2xl overflow-hidden border border-[#222]"
       data-testid="live-preview-card"
-      style={{ borderColor: "rgba(59, 130, 246, 0.3)" }}
     >
-      <div className="flex items-start justify-between mb-4 gap-3">
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 pointer-events-none" />
+      <div className="absolute top-0 left-1/4 right-1/4 h-[1px] bg-gradient-to-r from-transparent via-blue-500/50 to-transparent" />
+      
+      <div className="flex flex-col md:flex-row md:items-start justify-between mb-6 gap-4 relative z-10">
         <div>
           <div className="overline mb-1 flex items-center gap-1" style={{ color: "var(--state-info, #3b82f6)" }}>
             <Desktop size={10} weight="fill" />
@@ -174,25 +234,46 @@ export default function LivePreviewCard({ run }) {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <div className="flex bg-[#121212] p-1 rounded-lg border border-[#222] shadow-inner gap-1">
+             <button
+                onClick={() => setViewMode("sandpack")}
+                className={`text-[12px] px-3 py-1.5 rounded-md transition-all duration-300 ${viewMode === "sandpack" ? "bg-[#222] text-primary-ink shadow-sm" : "text-muted-ink hover:text-primary-ink"}`}
+             >Sandpack</button>
+             <button
+                onClick={() => setViewMode("iframe")}
+                className={`text-[12px] px-3 py-1.5 rounded-md transition-all duration-300 ${viewMode === "iframe" ? "bg-[#222] text-primary-ink shadow-sm" : "text-muted-ink hover:text-primary-ink"}`}
+             >Deployed</button>
+          </div>
           <button 
             onClick={() => setReloadKey(k => k + 1)}
-            className="text-[11px] px-2 py-1 rounded bg-[#222] hover:bg-[#333] text-primary-ink transition-colors"
+            className="text-[12px] px-3 py-1.5 rounded-lg bg-[#1a1a1a] border border-[#333] hover:bg-[#2a2a2a] hover:border-[#444] text-primary-ink transition-all duration-300 shadow-sm"
           >
             Refresh Preview
           </button>
-          <div className="flex items-center gap-1.5 text-[10px] font-mono text-muted-ink whitespace-nowrap">
-            <Code size={10} />
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-[11px] font-mono text-blue-400 whitespace-nowrap">
+            <Code size={12} weight="bold" />
             <span>{template} environment</span>
           </div>
         </div>
       </div>
 
-      <div className="w-full bg-[#151515] rounded-sm overflow-hidden border border-[#222]">
-        <SandpackProvider key={template + reloadKey} template={template} files={files.data} theme="dark" customSetup={{ dependencies: files.dependencies || { "react": "^18.0.0", "react-dom": "^18.0.0" } }}>
-          <SandpackLayout style={{ border: 0 }}>
-            <SandpackPreview showNavigator={true} showOpenInCodeSandbox={false} style={{ height: "600px", width: "100%" }} />
-          </SandpackLayout>
-        </SandpackProvider>
+      <div className="w-full bg-[#0a0a0a] rounded-xl overflow-hidden border border-[#222] shadow-inner relative z-10">
+        {viewMode === "sandpack" ? (
+          <SandpackProvider key={template + reloadKey} template={template} files={files.data} theme="dark" customSetup={{ dependencies: files.dependencies || { "react": "^18.0.0", "react-dom": "^18.0.0" } }}>
+            <SandpackLayout style={{ border: 0, borderRadius: '0.75rem', overflow: 'hidden' }}>
+              <SandpackPreview showNavigator={true} showOpenInCodeSandbox={false} style={{ height: "600px", width: "100%" }} />
+            </SandpackLayout>
+          </SandpackProvider>
+        ) : (
+          <div style={{ height: "600px", width: "100%", backgroundColor: "white" }}>
+            <iframe 
+               key={reloadKey}
+               src={`http://localhost:8000/api/runs/${run.id}/preview/index.html`}
+               style={{ width: "100%", height: "100%", border: "none" }}
+               title="Project Preview"
+            />
+          </div>
+        )}
       </div>
     </section>
   );
