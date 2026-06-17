@@ -3,7 +3,7 @@
  * Centralising magic numbers so they can be tuned in one place.
  */
 
-export const API_TIMEOUT_MS = 20_000;
+export const API_TIMEOUT_MS = 100_000;
 export const HEALTH_REFRESH_INTERVAL_MS = 15_000;
 export const RUN_POLL_INTERVAL_MS = 700;
 export const MAX_LOG_LINES = 500;
