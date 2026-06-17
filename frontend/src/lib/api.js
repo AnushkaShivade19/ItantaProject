@@ -10,6 +10,13 @@ export const api = axios.create({
   timeout: API_TIMEOUT_MS,
 });
 
+api.interceptors.response.use((response) => {
+  if (typeof response.data === 'string' && response.data.trim().startsWith('<')) {
+    throw new Error("API returned HTML instead of JSON. Is the backend URL configured correctly?");
+  }
+  return response;
+});
+
 // ---- read ----
 export const fetchHealth = () => api.get("/health").then((r) => r.data);
 export const fetchConfig = () => api.get("/config").then((r) => r.data);
